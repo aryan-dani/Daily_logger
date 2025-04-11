@@ -5,47 +5,55 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Daily Logger</title>
+		<title>Web Dev Bootcamp Journal</title>
 		<link rel="stylesheet" href="css/style.css" />
 		<link
 			rel="stylesheet"
 			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet" />
 	</head>
 	<body>
 		<div class="container">
 			<header>
-				<h1><i class="fas fa-book"></i> Daily Logger</h1>
+				<h1>
+					<i class="fas fa-laptop-code"></i> Colt Steele's Bootcamp Journal
+				</h1>
 				<p class="date-display" id="current-date"></p>
 			</header>
 
 			<div class="main-content">
 				<div class="input-section">
-					<h2>Add New Log Entry</h2>
+					<h2>Today's Learning Entry</h2>
 					<div class="input-group">
-						<label for="log-title">Title:</label>
+						<label for="log-title">Topic Covered:</label>
 						<input
 							type="text"
 							id="log-title"
-							placeholder="Enter log title..." />
+							placeholder="What did you learn today?" />
 					</div>
 					<div class="input-group">
-						<label for="log-category">Category:</label>
+						<label for="log-category">Course Section:</label>
 						<select id="log-category">
-							<option value="work">Work</option>
-							<option value="personal">Personal</option>
-							<option value="health">Health</option>
-							<option value="education">Education</option>
-							<option value="other">Other</option>
+							<option value="html-css">HTML & CSS Basics</option>
+							<option value="javascript">JavaScript</option>
+							<option value="node">Node.js</option>
+							<option value="express">Express</option>
+							<option value="mongodb">MongoDB</option>
+							<option value="project">Projects</option>
 						</select>
 					</div>
 					<div class="input-group">
-						<label for="log-content">Description:</label>
+						<label for="log-content">Key Learnings & Notes:</label>
 						<textarea
 							id="log-content"
-							placeholder="What happened today?"></textarea>
+							placeholder="Describe concepts, code snippets, challenges, and insights from today's lesson..."></textarea>
 					</div>
 					<div class="input-group">
-						<label for="log-importance">Importance:</label>
+						<label for="log-importance">Understanding Level:</label>
 						<div class="importance-slider">
 							<input
 								type="range"
@@ -54,54 +62,77 @@
 								max="5"
 								value="3" />
 							<div class="importance-labels">
-								<span>Low</span>
-								<span>High</span>
+								<span>Need Review</span>
+								<span>Fully Understood</span>
 							</div>
 						</div>
 					</div>
 					<button id="save-log" class="btn primary">
-						<i class="fas fa-save"></i> Save Log
+						<i class="fas fa-save"></i> Save Entry
 					</button>
 				</div>
 
 				<div class="logs-display">
+					<div class="course-progress">
+						<h3>Your Bootcamp Progress</h3>
+						<div class="progress-bar-container">
+							<div class="progress-bar" id="course-progress-bar"></div>
+						</div>
+						<div class="progress-stats">
+							<span id="days-logged">0 days</span>
+							<span id="progress-percentage">0%</span>
+						</div>
+					</div>
+
 					<div class="logs-header">
-						<h2>Your Logs</h2>
+						<h2>Learning History</h2>
 						<div class="filter-controls">
-							<select title="name" id="filter-category">
-								<option value="all">All Categories</option>
-								<option value="work">Work</option>
-								<option value="personal">Personal</option>
-								<option value="health">Health</option>
-								<option value="education">Education</option>
-								<option value="other">Other</option>
+							<select title="filter" id="filter-category">
+								<option value="all">All Sections</option>
+								<option value="html-css">HTML & CSS</option>
+								<option value="javascript">JavaScript</option>
+								<option value="node">Node.js</option>
+								<option value="express">Express</option>
+								<option value="mongodb">MongoDB</option>
+								<option value="project">Projects</option>
 							</select>
 							<div class="search-box">
 								<input
 									type="text"
 									id="search-logs"
-									placeholder="Search logs..." />
+									placeholder="Search entries..." />
 								<i class="fas fa-search"></i>
 							</div>
 						</div>
 					</div>
 					<div class="logs-container" id="logs-list">
-						<!-- Logs will be added here dynamically -->
+						<!-- Learning entries will be added here dynamically -->
 					</div>
 				</div>
 			</div>
 
 			<footer>
 				<p>
-					&copy; 2025 Daily Logger | <span id="stats-count">0</span> logs saved
+					&copy; 2025 Web Developer Bootcamp Journal |
+					<span id="stats-count">0</span> entries recorded
 				</p>
 			</footer>
 
-			<!-- Log details modal -->
+			<!-- Entry details modal -->
 			<div id="log-modal" class="modal">
 				<div class="modal-content">
 					<span class="close-modal">&times;</span>
 					<div id="modal-content"></div>
+				</div>
+			</div>
+
+			<!-- Notification element -->
+			<div id="notification" class="notification">
+				<div class="notification-icon">
+					<i class="fas fa-bell"></i>
+				</div>
+				<div class="notification-content">
+					<p id="notification-text">New entry added!</p>
 				</div>
 			</div>
 		</div>

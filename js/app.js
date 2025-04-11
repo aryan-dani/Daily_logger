@@ -1,6 +1,6 @@
 /** @format */
 
-// Daily Logger Application
+// Colt Steele's Web Developer Bootcamp Learning Journal
 
 // DOM Elements
 const currentDateEl = document.getElementById("current-date");
@@ -16,6 +16,14 @@ const statsCountEl = document.getElementById("stats-count");
 const logModal = document.getElementById("log-modal");
 const modalContent = document.getElementById("modal-content");
 const closeModal = document.querySelector(".close-modal");
+const progressBarEl = document.getElementById("course-progress-bar");
+const daysLoggedEl = document.getElementById("days-logged");
+const progressPercentageEl = document.getElementById("progress-percentage");
+const notificationEl = document.getElementById("notification");
+const notificationTextEl = document.getElementById("notification-text");
+
+// Course config - approximately how many days the Web Developer Bootcamp takes
+const COURSE_DURATION = 65; // Based on Colt's course sections
 
 // Display current date
 function displayCurrentDate() {
@@ -29,6 +37,50 @@ function displayCurrentDate() {
 	currentDateEl.textContent = now.toLocaleDateString("en-US", options);
 }
 
+// Show notification
+function showNotification(message) {
+	notificationTextEl.textContent = message;
+	notificationEl.classList.add("show");
+
+	// Hide notification after 5 seconds
+	setTimeout(() => {
+		notificationEl.classList.remove("show");
+	}, 5000);
+
+	// Add click event to dismiss notification
+	notificationEl.addEventListener(
+		"click",
+		() => {
+			notificationEl.classList.remove("show");
+		},
+		{ once: true }
+	);
+
+	// Also trigger browser notification if permission granted
+	if (Notification.permission === "granted") {
+		const notification = new Notification("Web Dev Bootcamp Journal", {
+			body: message,
+			icon: "https://img.icons8.com/color/96/000000/code.png",
+		});
+
+		// Close browser notification after 5 seconds
+		setTimeout(() => {
+			notification.close();
+		}, 5000);
+	}
+}
+
+// Request notification permission on page load
+function requestNotificationPermission() {
+	if (
+		Notification &&
+		Notification.permission !== "granted" &&
+		Notification.permission !== "denied"
+	) {
+		Notification.requestPermission();
+	}
+}
+
 // Toast notification function
 function showToast(message, type = "") {
 	// Check if a toast already exists, if so, remove it
@@ -40,7 +92,13 @@ function showToast(message, type = "") {
 	// Create new toast
 	const toast = document.createElement("div");
 	toast.className = `toast ${type}`;
-	toast.textContent = message;
+
+	// Add icon based on type
+	let iconClass = "info-circle";
+	if (type === "success") iconClass = "check-circle";
+	if (type === "error") iconClass = "exclamation-circle";
+
+	toast.innerHTML = `<i class="fas fa-${iconClass}"></i>${message}`;
 
 	document.body.appendChild(toast);
 
@@ -63,7 +121,32 @@ function generateId() {
 	return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
-// Save log to localStorage
+// Calculate and update course progress
+function updateCourseProgress(logs) {
+	// Get unique days with entries
+	const uniqueDays = new Set();
+	logs.forEach((log) => {
+		const date = new Date(log.timestamp).toLocaleDateString();
+		uniqueDays.add(date);
+	});
+
+	const daysLogged = uniqueDays.size;
+	const progressPercentage = Math.min(
+		Math.round((daysLogged / COURSE_DURATION) * 100),
+		100
+	);
+
+	// Update DOM elements
+	daysLoggedEl.textContent = `${daysLogged} ${
+		daysLogged === 1 ? "day" : "days"
+	}`;
+	progressPercentageEl.textContent = `${progressPercentage}%`;
+	progressBarEl.style.width = `${progressPercentage}%`;
+
+	return { daysLogged, progressPercentage };
+}
+
+// Save log to backend and localStorage
 async function saveLog() {
 	const title = logTitleEl.value.trim();
 	const category = logCategoryEl.value;
@@ -75,19 +158,27 @@ async function saveLog() {
 		return;
 	}
 
-	const log = {
-		id: generateId(),
+	// Check if we're editing or creating
+	const isEditing = saveLogBtn.textContent.includes("Update");
+
+	let log = {
+		id: isEditing ? saveLogBtn.dataset.editId : generateId(),
 		title,
 		category,
 		content,
 		importance,
-		timestamp: new Date().toISOString(),
+		timestamp: isEditing
+			? saveLogBtn.dataset.editTimestamp
+			: new Date().toISOString(),
 	};
 
 	try {
 		// Send log to backend
-		const response = await fetch("/api/logs", {
-			method: "POST",
+		const url = isEditing ? `/api/logs/${log.id}` : "/api/logs";
+		const method = isEditing ? "PUT" : "POST";
+
+		const response = await fetch(url, {
+			method: method,
 			headers: {
 				"Content-Type": "application/json",
 			},
@@ -95,88 +186,215 @@ async function saveLog() {
 		});
 
 		if (!response.ok) {
-			throw new Error("Failed to save log");
+			throw new Error(`Failed to ${isEditing ? "update" : "save"} entry`);
 		}
 
-		// Save to localStorage as backup
+		// Handle localStorage
 		const logs = JSON.parse(localStorage.getItem("logs") || "[]");
-		logs.push(log);
+
+		if (isEditing) {
+			// Update existing log
+			const index = logs.findIndex((l) => l.id === log.id);
+			if (index !== -1) {
+				logs[index] = log;
+			}
+		} else {
+			// Add new log
+			logs.push(log);
+		}
+
 		localStorage.setItem("logs", JSON.stringify(logs));
 
 		// Clear form
 		logTitleEl.value = "";
-		logCategoryEl.value = "work";
+		logCategoryEl.value = "html-css";
 		logContentEl.value = "";
 		logImportanceEl.value = 3;
 
+		// Reset button if we were editing
+		if (isEditing) {
+			saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
+			saveLogBtn.removeAttribute("data-edit-id");
+			saveLogBtn.removeAttribute("data-edit-timestamp");
+		}
+
 		// Update UI
-		displayLogs();
-		showToast("Log saved successfully!", "success");
+		await displayLogs();
+
+		// Generate appropriate message based on section
+		const sectionMessage = getSectionMotivationalMessage(category);
+
+		// Show notification for new entry
+		if (!isEditing) {
+			showNotification(sectionMessage);
+		}
+
+		showToast(
+			isEditing
+				? "Entry updated successfully!"
+				: "Learning entry saved successfully!",
+			"success"
+		);
 	} catch (error) {
-		console.error("Error saving log:", error);
+		console.error("Error saving entry:", error);
 
 		// Fallback to localStorage if backend fails
 		const logs = JSON.parse(localStorage.getItem("logs") || "[]");
-		logs.push(log);
+
+		if (isEditing) {
+			// Update existing log
+			const index = logs.findIndex((l) => l.id === log.id);
+			if (index !== -1) {
+				logs[index] = log;
+			}
+		} else {
+			// Add new log
+			logs.push(log);
+		}
+
 		localStorage.setItem("logs", JSON.stringify(logs));
 
 		// Clear form
 		logTitleEl.value = "";
-		logCategoryEl.value = "work";
+		logCategoryEl.value = "html-css";
 		logContentEl.value = "";
 		logImportanceEl.value = 3;
 
+		// Reset button if we were editing
+		if (isEditing) {
+			saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
+			saveLogBtn.removeAttribute("data-edit-id");
+			saveLogBtn.removeAttribute("data-edit-timestamp");
+		}
+
 		// Update UI
 		displayLogs();
-		showToast("Log saved locally (offline mode)", "success");
+
+		// Generate appropriate message based on section
+		const sectionMessage = getSectionMotivationalMessage(category);
+
+		// Show notification for new entry
+		if (!isEditing) {
+			showNotification(sectionMessage);
+		}
+
+		showToast(
+			isEditing
+				? "Entry updated locally (offline mode)"
+				: "Learning entry saved locally (offline mode)",
+			"success"
+		);
+	}
+}
+
+// Get motivational message based on course section
+function getSectionMotivationalMessage(category) {
+	switch (category) {
+		case "html-css":
+			return "Great job learning HTML & CSS! You're building the foundation of the web!";
+		case "javascript":
+			return "JavaScript entry added! Keep mastering the language of the web!";
+		case "node":
+			return "Node.js progress logged! You're becoming a full-stack developer!";
+		case "express":
+			return "Express.js concepts recorded! Your backend skills are growing!";
+		case "mongodb":
+			return "MongoDB knowledge tracked! Database skills are crucial - great work!";
+		case "project":
+			return "Project work recorded! Building real applications is the best way to learn!";
+		default:
+			return "New bootcamp entry added! Keep up the great work!";
 	}
 }
 
 // Format date for display
 function formatDate(dateString) {
 	const date = new Date(dateString);
-	return date.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-		hour: "2-digit",
-		minute: "2-digit",
-	});
+	const today = new Date();
+	const yesterday = new Date(today);
+	yesterday.setDate(yesterday.getDate() - 1);
+
+	// If it's today or yesterday, show that instead of the date
+	if (date.toDateString() === today.toDateString()) {
+		return `Today at ${date.toLocaleTimeString("en-US", {
+			hour: "2-digit",
+			minute: "2-digit",
+		})}`;
+	} else if (date.toDateString() === yesterday.toDateString()) {
+		return `Yesterday at ${date.toLocaleTimeString("en-US", {
+			hour: "2-digit",
+			minute: "2-digit",
+		})}`;
+	} else {
+		return date.toLocaleDateString("en-US", {
+			month: "short",
+			day: "numeric",
+			year: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	}
 }
 
 // Create log item HTML
 function createLogItemHTML(log) {
-	// Create importance dots
+	// Create importance dots (now representing understanding level)
 	let importanceDots = "";
 	for (let i = 1; i <= 5; i++) {
 		const activeClass = i <= log.importance ? "" : "inactive";
 		importanceDots += `<span class="importance-dot ${activeClass}"></span>`;
 	}
 
+	// Get preview text - limit to 150 characters
+	let preview = log.content;
+	if (preview.length > 150) {
+		preview = preview.substring(0, 147) + "...";
+	}
+
 	return `
-        <div class="log-item" data-id="${log.id}">
+        <div class="log-item ${log.category}" data-id="${log.id}">
             <div class="log-header">
                 <h3 class="log-title">${log.title}</h3>
                 <span class="log-date">${formatDate(log.timestamp)}</span>
             </div>
-            <p class="log-preview">${log.content}</p>
+            <p class="log-preview">${preview}</p>
             <div class="log-meta">
-                <span class="log-category category-${log.category}">${
-		log.category
-	}</span>
+                <span class="log-category category-${
+									log.category
+								}">${getCategoryDisplayName(log.category)}</span>
                 <div class="log-importance">
-                    <span>Importance:</span>
+                    <span>Understanding:</span>
                     <div class="importance-dots">
                         ${importanceDots}
                     </div>
                 </div>
             </div>
             <div class="log-actions">
-                <button class="action-btn edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                <button class="action-btn delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                <button class="action-btn edit-btn" title="Edit Entry"><i class="fas fa-edit"></i></button>
+                <button class="action-btn delete-btn" title="Delete Entry"><i class="fas fa-trash"></i></button>
             </div>
         </div>
     `;
+}
+
+// Get display name for category
+function getCategoryDisplayName(category) {
+	switch (category) {
+		case "html-css":
+			return "HTML & CSS";
+		case "javascript":
+			return "JavaScript";
+		case "node":
+			return "Node.js";
+		case "express":
+			return "Express";
+		case "mongodb":
+			return "MongoDB";
+		case "project":
+			return "Project";
+		default:
+			return category;
+	}
 }
 
 // Display logs in the UI
@@ -190,7 +408,7 @@ async function displayLogs() {
 			if (response.ok) {
 				logs = await response.json();
 			} else {
-				throw new Error("Failed to fetch logs from server");
+				throw new Error("Failed to fetch entries from server");
 			}
 		} catch (error) {
 			console.warn("Using localStorage fallback:", error);
@@ -200,6 +418,9 @@ async function displayLogs() {
 
 		// Update stats count
 		statsCountEl.textContent = logs.length;
+
+		// Update course progress
+		updateCourseProgress(logs);
 
 		// Apply filters
 		const filterCategory = filterCategoryEl.value;
@@ -230,8 +451,8 @@ async function displayLogs() {
 		if (filteredLogs.length === 0) {
 			logsListEl.innerHTML = `
                 <div class="empty-logs">
-                    <i class="fas fa-book-open"></i>
-                    <p>No logs found. Create your first log!</p>
+                    <i class="fas fa-code"></i>
+                    <p>No entries found. Ready to add your first bootcamp learning entry?</p>
                 </div>
             `;
 		} else {
@@ -272,13 +493,13 @@ async function displayLogs() {
 		});
 	} catch (error) {
 		console.error("Error displaying logs:", error);
-		showToast("Failed to load logs", "error");
+		showToast("Failed to load entries", "error");
 	}
 }
 
 // Delete log
 async function deleteLog(id) {
-	if (!confirm("Are you sure you want to delete this log?")) {
+	if (!confirm("Are you sure you want to delete this learning entry?")) {
 		return;
 	}
 
@@ -289,7 +510,7 @@ async function deleteLog(id) {
 		});
 
 		if (!response.ok) {
-			throw new Error("Failed to delete log from server");
+			throw new Error("Failed to delete entry from server");
 		}
 
 		// Also delete from localStorage
@@ -299,7 +520,7 @@ async function deleteLog(id) {
 
 		// Update UI
 		displayLogs();
-		showToast("Log deleted successfully", "success");
+		showToast("Entry deleted successfully", "success");
 	} catch (error) {
 		console.error("Error deleting log:", error);
 
@@ -310,7 +531,7 @@ async function deleteLog(id) {
 
 		// Update UI
 		displayLogs();
-		showToast("Log deleted locally", "success");
+		showToast("Entry deleted locally", "success");
 	}
 }
 
@@ -325,87 +546,15 @@ function editLog(log) {
 	logImportanceEl.value = log.importance;
 
 	// Change button text
-	saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Update Log';
+	saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Update Entry';
+	saveLogBtn.dataset.editId = log.id;
+	saveLogBtn.dataset.editTimestamp = log.timestamp;
 
-	// Scroll to form
+	// Scroll to form and focus the title field
 	document
 		.querySelector(".input-section")
 		.scrollIntoView({ behavior: "smooth" });
-
-	// Update button click handler
-	const originalClickHandler = saveLogBtn.onclick;
-	saveLogBtn.onclick = async () => {
-		try {
-			const updatedLog = {
-				...log,
-				title: logTitleEl.value.trim(),
-				category: logCategoryEl.value,
-				content: logContentEl.value.trim(),
-				importance: parseInt(logImportanceEl.value),
-			};
-
-			// Update on backend
-			const response = await fetch(`/api/logs/${log.id}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(updatedLog),
-			});
-
-			if (!response.ok) {
-				throw new Error("Failed to update log on server");
-			}
-
-			// Update in localStorage
-			let logs = JSON.parse(localStorage.getItem("logs") || "[]");
-			logs = logs.map((l) => (l.id === log.id ? updatedLog : l));
-			localStorage.setItem("logs", JSON.stringify(logs));
-
-			// Reset form
-			logTitleEl.value = "";
-			logCategoryEl.value = "work";
-			logContentEl.value = "";
-			logImportanceEl.value = 3;
-
-			// Reset button text and handler
-			saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Save Log';
-			saveLogBtn.onclick = originalClickHandler;
-
-			// Update UI
-			displayLogs();
-			showToast("Log updated successfully", "success");
-		} catch (error) {
-			console.error("Error updating log:", error);
-
-			// Fallback to localStorage
-			const updatedLog = {
-				...log,
-				title: logTitleEl.value.trim(),
-				category: logCategoryEl.value,
-				content: logContentEl.value.trim(),
-				importance: parseInt(logImportanceEl.value),
-			};
-
-			let logs = JSON.parse(localStorage.getItem("logs") || "[]");
-			logs = logs.map((l) => (l.id === log.id ? updatedLog : l));
-			localStorage.setItem("logs", JSON.stringify(logs));
-
-			// Reset form
-			logTitleEl.value = "";
-			logCategoryEl.value = "work";
-			logContentEl.value = "";
-			logImportanceEl.value = 3;
-
-			// Reset button text and handler
-			saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Save Log';
-			saveLogBtn.onclick = originalClickHandler;
-
-			// Update UI
-			displayLogs();
-			showToast("Log updated locally (offline mode)", "success");
-		}
-	};
+	setTimeout(() => logTitleEl.focus(), 500);
 }
 
 // Open log details modal
@@ -419,26 +568,35 @@ function openLogDetails(log) {
 		importanceDots += `<span class="importance-dot ${activeClass}"></span>`;
 	}
 
+	// Get understanding level text
+	let understandingText;
+	if (log.importance <= 1) understandingText = "Need more review";
+	else if (log.importance === 2) understandingText = "Basic understanding";
+	else if (log.importance === 3) understandingText = "Good grasp";
+	else if (log.importance === 4) understandingText = "Strong understanding";
+	else understandingText = "Fully understood";
+
 	// Fill modal content
 	modalContent.innerHTML = `
         <h2 class="log-detail-title">${log.title}</h2>
         <div class="log-detail-meta">
-            <span>Category: <span class="log-category category-${
+            <span>Section: <span class="log-category category-${
 							log.category
-						}">${log.category}</span></span>
-            <span>Created: ${formatDate(log.timestamp)}</span>
+						}">${getCategoryDisplayName(log.category)}</span></span>
+            <span>Date: ${formatDate(log.timestamp)}</span>
             <div class="log-importance">
-                Importance: 
-                <div class="importance-dots">
+                Understanding: 
+                <div class="importance-dots" title="${understandingText}">
                     ${importanceDots}
                 </div>
+                <span class="comprehension-text">(${understandingText})</span>
             </div>
         </div>
         <div class="log-detail-content">
             ${log.content.replace(/\n/g, "<br>")}
         </div>
         <button class="btn primary" id="edit-from-modal">
-            <i class="fas fa-edit"></i> Edit
+            <i class="fas fa-edit"></i> Edit Entry
         </button>
     `;
 
@@ -459,6 +617,9 @@ function closeLogModal() {
 
 // Event listeners
 document.addEventListener("DOMContentLoaded", () => {
+	// Request notification permissions
+	requestNotificationPermission();
+
 	// Display current date
 	displayCurrentDate();
 
@@ -472,7 +633,13 @@ document.addEventListener("DOMContentLoaded", () => {
 	filterCategoryEl.addEventListener("change", displayLogs);
 
 	// Search logs
-	searchLogsEl.addEventListener("input", displayLogs);
+	searchLogsEl.addEventListener("input", () => {
+		// Debounce search to avoid too many updates
+		clearTimeout(searchLogsEl.searchTimeout);
+		searchLogsEl.searchTimeout = setTimeout(() => {
+			displayLogs();
+		}, 300);
+	});
 
 	// Close modal when clicking on X
 	closeModal.addEventListener("click", closeLogModal);
@@ -481,6 +648,23 @@ document.addEventListener("DOMContentLoaded", () => {
 	window.addEventListener("click", (e) => {
 		if (e.target === logModal) {
 			closeLogModal();
+		}
+	});
+
+	// Keyboard shortcuts
+	window.addEventListener("keydown", (e) => {
+		// Escape key to close modal
+		if (e.key === "Escape" && logModal.style.display === "block") {
+			closeLogModal();
+		}
+
+		// Ctrl+Enter to save entry when in textarea
+		if (
+			e.key === "Enter" &&
+			e.ctrlKey &&
+			document.activeElement === logContentEl
+		) {
+			saveLog();
 		}
 	});
 
@@ -507,14 +691,14 @@ async function syncLogsWithBackend() {
 		});
 
 		if (!response.ok) {
-			throw new Error("Failed to sync logs with server");
+			throw new Error("Failed to sync entries with server");
 		}
 
-		console.log("Logs synced with backend successfully");
+		console.log("Learning entries synced with backend successfully");
 
 		// Refresh logs display after sync
 		displayLogs();
 	} catch (error) {
-		console.error("Error syncing logs:", error);
+		console.error("Error syncing entries:", error);
 	}
 }
