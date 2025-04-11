@@ -953,3 +953,40 @@ footer {
 		right: -100%;
 	}
 }
+
+/* Authentication styles */
+.user-info {
+	display: flex;
+	align-items: center;
+	margin-left: auto;
+	padding: 0 10px;
+	gap: 10px;
+}
+
+.user-info span {
+	font-size: 14px;
+	color: #333;
+	font-weight: 500;
+}
+
+.logout-btn {
+	background-color: #f8f9fa;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	padding: 5px 10px;
+	font-size: 14px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+	background-color: #e9ecef;
+	border-color: #ccc;
+}
+
+.logout-btn i {
+	color: #dc3545;
+}

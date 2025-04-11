@@ -1,0 +1,197 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Login - Daily Logger</title>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+		<link rel="stylesheet" href="css/style.css" />
+		<style>
+			.login-container {
+				max-width: 400px;
+				margin: 100px auto;
+				padding: 30px;
+				border-radius: 8px;
+				box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+				background-color: #fff;
+			}
+
+			.login-logo {
+				text-align: center;
+				margin-bottom: 20px;
+			}
+
+			.login-logo i {
+				font-size: 48px;
+				color: #007bff;
+			}
+
+			.login-heading {
+				text-align: center;
+				margin-bottom: 25px;
+				color: #333;
+			}
+
+			.login-form .input-group {
+				margin-bottom: 20px;
+			}
+
+			.login-form label {
+				display: block;
+				margin-bottom: 5px;
+				font-weight: 500;
+			}
+
+			.login-form input {
+				width: 100%;
+				padding: 10px 15px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				font-size: 16px;
+				transition: border-color 0.3s;
+			}
+
+			.login-form input:focus {
+				outline: none;
+				border-color: #007bff;
+			}
+
+			.login-btn {
+				width: 100%;
+				padding: 12px 0;
+				background-color: #007bff;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				font-size: 16px;
+				cursor: pointer;
+				transition: background-color 0.3s;
+			}
+
+			.login-btn:hover {
+				background-color: #0069d9;
+			}
+
+			.error-message {
+				color: #dc3545;
+				font-size: 14px;
+				margin-top: 15px;
+				text-align: center;
+				display: none;
+			}
+
+			.help-text {
+				margin-top: 20px;
+				text-align: center;
+				color: #6c757d;
+				font-size: 14px;
+				border-top: 1px solid #eee;
+				padding-top: 15px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="login-container">
+			<div class="login-logo">
+				<i class="fas fa-book-reader"></i>
+			</div>
+			<h2 class="login-heading">Daily Logger</h2>
+			<form class="login-form" id="loginForm">
+				<div class="input-group">
+					<label for="username">Username</label>
+					<input
+						type="text"
+						id="username"
+						name="username"
+						required
+						autocomplete="username" />
+				</div>
+				<div class="input-group">
+					<label for="password">Password</label>
+					<input
+						type="password"
+						id="password"
+						name="password"
+						required
+						autocomplete="current-password" />
+				</div>
+				<button type="submit" class="login-btn">
+					<i class="fas fa-sign-in-alt"></i> Login
+				</button>
+				<div class="error-message" id="errorMessage">
+					Invalid username or password
+				</div>
+				<div class="help-text">
+					Use username: <strong>srushti</strong> and password:
+					<strong>paneer</strong>
+				</div>
+			</form>
+		</div>
+
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				// Check if user is already logged in
+				fetch("/api/user")
+					.then((response) => {
+						if (!response.ok) {
+							throw new Error("Not authenticated");
+						}
+						return response.json();
+					})
+					.then((data) => {
+						if (data.authenticated) {
+							window.location.href = "/";
+						}
+					})
+					.catch((error) => {
+						console.log("User not authenticated yet:", error.message);
+					});
+
+				// Handle login form submission
+				document
+					.getElementById("loginForm")
+					.addEventListener("submit", function (e) {
+						e.preventDefault();
+
+						const username = document.getElementById("username").value.trim();
+						const password = document.getElementById("password").value;
+						const errorMessage = document.getElementById("errorMessage");
+
+						console.log("Attempting login with username:", username);
+
+						fetch("/api/login", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({ username, password }),
+							credentials: "include", // Important for session cookies
+						})
+							.then((response) => {
+								if (!response.ok) {
+									throw new Error("Login failed");
+								}
+								return response.json();
+							})
+							.then((data) => {
+								if (data.success) {
+									window.location.href = "/";
+								} else {
+									errorMessage.style.display = "block";
+									document.getElementById("password").value = "";
+								}
+							})
+							.catch((error) => {
+								console.error("Login error:", error);
+								errorMessage.style.display = "block";
+								document.getElementById("password").value = "";
+							});
+					});
+			});
+		</script>
+	</body>
+</html>

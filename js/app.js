@@ -36,6 +36,11 @@ const closeSettings = document.querySelector(".close-settings");
 const testEmailBtn = document.getElementById("test-email-btn");
 const emailStatus = document.getElementById("email-status");
 
+// DOM Elements for authentication
+const userInfoEl = document.createElement("div");
+userInfoEl.className = "user-info";
+document.querySelector("header").appendChild(userInfoEl);
+
 // Course config - approximately how many days the Web Developer Bootcamp takes
 const COURSE_DURATION = 65; // Based on Colt's course sections
 
@@ -733,8 +738,60 @@ async function testEmailNotification() {
 	}
 }
 
+// Check authentication status
+async function checkAuthStatus() {
+	try {
+		const response = await fetch(`${API_BASE_URL}/api/user`);
+
+		if (!response.ok) {
+			// If not authenticated, redirect to login page
+			window.location.href = "/login.html";
+			return;
+		}
+
+		const data = await response.json();
+		if (data.authenticated) {
+			// Update UI with username
+			userInfoEl.innerHTML = `
+        <span>Welcome, ${data.username}</span>
+        <button id="logoutBtn" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      `;
+
+			// Add logout functionality
+			document.getElementById("logoutBtn").addEventListener("click", logout);
+		} else {
+			window.location.href = "/login.html";
+		}
+	} catch (error) {
+		console.error("Error checking authentication:", error);
+		window.location.href = "/login.html";
+	}
+}
+
+// Logout function
+async function logout() {
+	try {
+		const response = await fetch(`${API_BASE_URL}/api/logout`);
+		const data = await response.json();
+
+		if (data.success) {
+			window.location.href = "/login.html";
+		} else {
+			showToast("Logout failed. Please try again.", "error");
+		}
+	} catch (error) {
+		console.error("Logout error:", error);
+		showToast("Logout failed. Please try again.", "error");
+	}
+}
+
 // Event listeners
 document.addEventListener("DOMContentLoaded", () => {
+	// Check authentication first
+	checkAuthStatus();
+
 	// Request notification permissions
 	requestNotificationPermission();
 

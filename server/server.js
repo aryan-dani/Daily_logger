@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const nodemailer = require("nodemailer");
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,17 +18,21 @@ const isProduction = process.env.NODE_ENV === "production";
 // Configure email - first try environment variables, then fall back to local config
 let emailConfig;
 try {
-	// First check for environment variables
-	if (process.env.EMAIL_HOST) {
+	// First check for environment variables (with support for Heroku Deploy HD_ prefixed vars)
+	if (process.env.EMAIL_HOST || process.env.HD_EMAIL_HOST) {
 		emailConfig = {
-			enabled: true,
-			host: process.env.EMAIL_HOST,
-			port: process.env.EMAIL_PORT || 587,
-			secure: process.env.EMAIL_SECURE === "true",
-			user: process.env.EMAIL_USER,
-			password: process.env.EMAIL_PASSWORD,
-			from: process.env.EMAIL_FROM,
-			to: process.env.EMAIL_TO,
+			enabled:
+				process.env.EMAIL_ENABLED === "true" ||
+				process.env.HD_EMAIL_ENABLED === "true",
+			host: process.env.EMAIL_HOST || process.env.HD_EMAIL_HOST,
+			port: process.env.EMAIL_PORT || process.env.HD_EMAIL_PORT || 587,
+			secure:
+				process.env.EMAIL_SECURE === "true" ||
+				process.env.HD_EMAIL_SECURE === "true",
+			user: process.env.EMAIL_USER || process.env.HD_EMAIL_USER,
+			password: process.env.EMAIL_PASSWORD || process.env.HD_EMAIL_PASSWORD,
+			from: process.env.EMAIL_FROM || process.env.HD_EMAIL_FROM,
+			to: process.env.EMAIL_TO || process.env.HD_EMAIL_TO,
 		};
 		console.log("Email configuration loaded from environment variables");
 	} else {
@@ -43,23 +49,118 @@ try {
 
 // Middleware
 app.use(bodyParser.json());
+app.use(cookieParser());
+
+// Session configuration - deliberately simplified
+app.use(
+	session({
+		secret: "daily-logger-secret-key",
+		resave: false,
+		saveUninitialized: true,
+		cookie: {
+			secure: false, // Turn off secure cookies for local testing
+			maxAge: 24 * 60 * 60 * 1000, // 24 hours
+		},
+	})
+);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, "..")));
 
-// Ensure all API routes are handled before the catch-all
-app.use((req, res, next) => {
-	if (req.path.startsWith("/api/")) {
-		next();
+// Login endpoint - placed BEFORE the auth middleware
+app.post("/api/login", (req, res) => {
+	const { username, password } = req.body;
+
+	console.log(
+		`Login attempt - Username: "${username}", Password: "${password}"`
+	);
+
+	// Hardcoded check specifically for srushti/paneer
+	if (username === "srushti" && password === "paneer") {
+		req.session.authenticated = true;
+		req.session.username = username;
+		console.log("Login successful!");
+		return res.json({ success: true });
 	} else {
-		// For all non-API routes, serve the main index.html
-		if (req.path !== "/" && !req.path.includes(".")) {
-			res.sendFile(path.join(__dirname, "..", "index.html"));
-		} else {
-			next();
-		}
+		console.log(`Login failed - Username: ${username}`);
+		return res
+			.status(401)
+			.json({ success: false, message: "Invalid username or password" });
 	}
 });
+
+// Public routes that don't require authentication
+app.get("/api/status", (req, res) => {
+	res.json({
+		status: "online",
+		environment: isProduction ? "production" : "development",
+		emailEnabled: emailConfig && emailConfig.enabled,
+	});
+});
+
+// Authentication check middleware - only applied AFTER login endpoints
+const checkAuth = (req, res, next) => {
+	console.log(
+		`Auth check for path: ${req.path}, Auth status: ${
+			req.session.authenticated ? "Authenticated" : "Not authenticated"
+		}`
+	);
+
+	// Skip auth for login route and static files
+	if (
+		req.path === "/login.html" ||
+		req.path === "/api/login" ||
+		req.path === "/api/status"
+	) {
+		return next();
+	}
+
+	// Check if user is logged in
+	if (req.session.authenticated) {
+		return next();
+	}
+
+	// If this is an API request, send 401 response
+	if (req.path.startsWith("/api/")) {
+		return res.status(401).json({ error: "Authentication required" });
+	}
+
+	// Otherwise redirect to login page
+	res.redirect("/login.html");
+};
+
+// Get current user info
+app.get("/api/user", (req, res) => {
+	console.log(
+		`User info request - Auth status: ${
+			req.session.authenticated ? "Authenticated" : "Not authenticated"
+		}`
+	);
+
+	if (req.session.authenticated) {
+		res.json({
+			authenticated: true,
+			username: req.session.username,
+		});
+	} else {
+		res.status(401).json({ authenticated: false });
+	}
+});
+
+// Logout endpoint
+app.get("/api/logout", (req, res) => {
+	req.session.destroy((err) => {
+		if (err) {
+			return res
+				.status(500)
+				.json({ success: false, message: "Could not log out" });
+		}
+		res.json({ success: true });
+	});
+});
+
+// Apply authentication middleware for protected routes
+app.use(checkAuth);
 
 // Data file path - use a writable location in production
 const dataFile = isProduction
@@ -358,16 +459,6 @@ app.get("/api/test-email", async (req, res) => {
 	}
 });
 
-// API status endpoint
-app.get("/api/status", (req, res) => {
-	res.json({
-		status: "online",
-		environment: isProduction ? "production" : "development",
-		storageType: useMemoryStorage ? "in-memory" : "file-based",
-		emailEnabled: emailConfig && emailConfig.enabled,
-	});
-});
-
 // Catch-all route to handle SPA routing
 app.get("*", (req, res) => {
 	res.sendFile(path.join(__dirname, "..", "index.html"));
@@ -386,4 +477,10 @@ app.listen(PORT, () => {
 			emailConfig && emailConfig.enabled ? "enabled" : "disabled"
 		}`
 	);
+
+	// Display login instructions for easier testing
+	console.log("\n----- AUTHENTICATION INSTRUCTIONS -----");
+	console.log("Username: srushti");
+	console.log("Password: paneer");
+	console.log("---------------------------------------\n");
 });
