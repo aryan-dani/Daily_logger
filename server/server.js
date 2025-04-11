@@ -75,6 +75,7 @@ app.use(
 );
 
 // Session configuration - critical for authentication
+// Session configuration - critical for authentication
 app.use(
 	session({
 		secret:
@@ -82,13 +83,15 @@ app.use(
 		resave: false,
 		saveUninitialized: false,
 		cookie: {
-			secure: process.env.NODE_ENV === "production", 
-			sameSite: 'None', // Use secure cookies in production
+			// In production, set secure to true
+			secure: process.env.NODE_ENV === "production",
+			// Don't explicitly set sameSite for local development
+			// This will use the browser default which works for localhost
+			...(process.env.NODE_ENV === "production" && { sameSite: "none" }),
 			maxAge: 24 * 60 * 60 * 1000, // 24 hours
 		},
 	})
 );
-
 // Helper function for logging
 function logToFile(message, data = {}) {
 	const logEntry = {

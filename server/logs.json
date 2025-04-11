@@ -409,5 +409,131 @@
     "message": "User logged in",
     "username": "srushti",
     "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:03.624Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:36:06.887Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:08.913Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:09.757Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:18.101Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:18.837Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:19.472Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:20.098Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:20.806Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:29.079Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:36:29.786Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:37:19.549Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:37:20.578Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:37:21.593Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:37:25.217Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:37:25.999Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:37:29.715Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:37:33.617Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:38:36.850Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:38:42.283Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
   }
 ]
