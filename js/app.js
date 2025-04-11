@@ -2,6 +2,13 @@
 
 // Colt Steele's Web Developer Bootcamp Learning Journal
 
+// API base URL - dynamically set based on environment
+const API_BASE_URL =
+	window.location.hostname === "localhost" ||
+	window.location.hostname === "127.0.0.1"
+		? "" // Empty for localhost (relative URLs)
+		: window.location.origin; // Full origin for deployed site
+
 // DOM Elements
 const currentDateEl = document.getElementById("current-date");
 const logTitleEl = document.getElementById("log-title");
@@ -22,6 +29,13 @@ const progressPercentageEl = document.getElementById("progress-percentage");
 const notificationEl = document.getElementById("notification");
 const notificationTextEl = document.getElementById("notification-text");
 
+// Settings panel elements
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsPanel = document.getElementById("settings-panel");
+const closeSettings = document.querySelector(".close-settings");
+const testEmailBtn = document.getElementById("test-email-btn");
+const emailStatus = document.getElementById("email-status");
+
 // Course config - approximately how many days the Web Developer Bootcamp takes
 const COURSE_DURATION = 65; // Based on Colt's course sections
 
@@ -38,8 +52,10 @@ function displayCurrentDate() {
 }
 
 // Show notification
-function showNotification(message) {
+function showNotification(message, type = "success") {
 	notificationTextEl.textContent = message;
+	notificationEl.className = "notification"; // Reset classes
+	notificationEl.classList.add(type);
 	notificationEl.classList.add("show");
 
 	// Hide notification after 5 seconds
@@ -173,8 +189,10 @@ async function saveLog() {
 	};
 
 	try {
-		// Send log to backend
-		const url = isEditing ? `/api/logs/${log.id}` : "/api/logs";
+		// Send log to backend with dynamic URL
+		const url = isEditing
+			? `${API_BASE_URL}/api/logs/${log.id}`
+			: `${API_BASE_URL}/api/logs`;
 		const method = isEditing ? "PUT" : "POST";
 
 		const response = await fetch(url, {
@@ -205,12 +223,6 @@ async function saveLog() {
 
 		localStorage.setItem("logs", JSON.stringify(logs));
 
-		// Clear form
-		logTitleEl.value = "";
-		logCategoryEl.value = "html-css";
-		logContentEl.value = "";
-		logImportanceEl.value = 3;
-
 		// Reset button if we were editing
 		if (isEditing) {
 			saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
@@ -235,6 +247,32 @@ async function saveLog() {
 				: "Learning entry saved successfully!",
 			"success"
 		);
+
+		// Ask if the user wants to continue adding entries
+		if (!isEditing) {
+			setTimeout(() => {
+				const continueIterate = confirm(
+					"Continue to iterate? Add another entry?"
+				);
+				if (continueIterate) {
+					// Focus on the title field to start a new entry
+					logTitleEl.focus();
+				} else {
+					// If user doesn't want to continue, maybe scroll to the logs section
+					document
+						.querySelector(".logs-section")
+						.scrollIntoView({ behavior: "smooth" });
+				}
+			}, 500);
+		}
+
+		// Clear form - move this after the confirm dialog
+		if (!isEditing) {
+			logTitleEl.value = "";
+			logCategoryEl.value = "html-css";
+			logContentEl.value = "";
+			logImportanceEl.value = 3;
+		}
 	} catch (error) {
 		console.error("Error saving entry:", error);
 
@@ -253,12 +291,6 @@ async function saveLog() {
 		}
 
 		localStorage.setItem("logs", JSON.stringify(logs));
-
-		// Clear form
-		logTitleEl.value = "";
-		logCategoryEl.value = "html-css";
-		logContentEl.value = "";
-		logImportanceEl.value = 3;
 
 		// Reset button if we were editing
 		if (isEditing) {
@@ -284,6 +316,32 @@ async function saveLog() {
 				: "Learning entry saved locally (offline mode)",
 			"success"
 		);
+
+		// Ask if the user wants to continue adding entries
+		if (!isEditing) {
+			setTimeout(() => {
+				const continueIterate = confirm(
+					"Continue to iterate? Add another entry?"
+				);
+				if (continueIterate) {
+					// Focus on the title field to start a new entry
+					logTitleEl.focus();
+				} else {
+					// If user doesn't want to continue, maybe scroll to the logs section
+					document
+						.querySelector(".logs-section")
+						.scrollIntoView({ behavior: "smooth" });
+				}
+			}, 500);
+		}
+
+		// Clear form - move this after the confirm dialog
+		if (!isEditing) {
+			logTitleEl.value = "";
+			logCategoryEl.value = "html-css";
+			logContentEl.value = "";
+			logImportanceEl.value = 3;
+		}
 	}
 }
 
@@ -397,24 +455,28 @@ function getCategoryDisplayName(category) {
 	}
 }
 
+// Fetch logs from the backend
+async function fetchLogs() {
+	try {
+		const response = await fetch(`${API_BASE_URL}/api/logs`);
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch logs: ${response.status}`);
+		}
+
+		const logs = await response.json();
+		return logs;
+	} catch (error) {
+		console.error("Error fetching logs:", error);
+		// Fall back to localStorage if backend fetch fails
+		return JSON.parse(localStorage.getItem("logs") || "[]");
+	}
+}
+
 // Display logs in the UI
 async function displayLogs() {
 	try {
-		let logs = [];
-
-		// Try to fetch logs from backend
-		try {
-			const response = await fetch("/api/logs");
-			if (response.ok) {
-				logs = await response.json();
-			} else {
-				throw new Error("Failed to fetch entries from server");
-			}
-		} catch (error) {
-			console.warn("Using localStorage fallback:", error);
-			// Fallback to localStorage if backend request fails
-			logs = JSON.parse(localStorage.getItem("logs") || "[]");
-		}
+		let logs = await fetchLogs();
 
 		// Update stats count
 		statsCountEl.textContent = logs.length;
@@ -504,13 +566,12 @@ async function deleteLog(id) {
 	}
 
 	try {
-		// Try to delete from backend
-		const response = await fetch(`/api/logs/${id}`, {
+		const response = await fetch(`${API_BASE_URL}/api/logs/${id}`, {
 			method: "DELETE",
 		});
 
 		if (!response.ok) {
-			throw new Error("Failed to delete entry from server");
+			throw new Error(`Failed to delete entry: ${response.status}`);
 		}
 
 		// Also delete from localStorage
@@ -522,7 +583,7 @@ async function deleteLog(id) {
 		displayLogs();
 		showToast("Entry deleted successfully", "success");
 	} catch (error) {
-		console.error("Error deleting log:", error);
+		console.error("Error deleting entry:", error);
 
 		// Fallback to localStorage if backend fails
 		let logs = JSON.parse(localStorage.getItem("logs") || "[]");
@@ -615,6 +676,63 @@ function closeLogModal() {
 	logModal.style.display = "none";
 }
 
+// Check email configuration
+async function checkEmailConfiguration() {
+	try {
+		const statusDot = emailStatus.querySelector(".status-dot");
+		const statusText = emailStatus.querySelector(".status-text");
+
+		// Get email status from API endpoint rather than checking file directly
+		const response = await fetch(`${API_BASE_URL}/api/status`);
+
+		if (response.ok) {
+			const statusData = await response.json();
+
+			if (statusData.emailEnabled) {
+				// Email is configured correctly
+				statusDot.classList.add("active");
+				statusText.textContent = "Email notifications are enabled";
+			} else {
+				// Email configuration exists but might be incomplete
+				statusDot.classList.add("warning");
+				statusText.textContent = "Email notifications are disabled";
+			}
+		} else {
+			// Can't access API status
+			statusDot.classList.add("error");
+			statusText.textContent = "Can't check email configuration";
+		}
+	} catch (error) {
+		console.error("Error checking email configuration:", error);
+		const statusDot = emailStatus.querySelector(".status-dot");
+		const statusText = emailStatus.querySelector(".status-text");
+		statusDot.classList.add("error");
+		statusText.textContent = "Error checking email configuration";
+	}
+}
+
+// Test email function
+async function testEmailNotification() {
+	try {
+		emailStatus.innerHTML =
+			'<i class="fas fa-spinner fa-spin"></i> Testing email...';
+
+		const response = await fetch(`${API_BASE_URL}/api/test-email`);
+		const result = await response.json();
+
+		if (result.success) {
+			emailStatus.innerHTML =
+				'<i class="fas fa-check-circle text-success"></i> Test email sent successfully!';
+		} else {
+			emailStatus.innerHTML = `<i class="fas fa-exclamation-circle text-danger"></i> ${result.message}`;
+		}
+	} catch (error) {
+		emailStatus.innerHTML =
+			'<i class="fas fa-exclamation-circle text-danger"></i> Failed to send test email. Check server logs.';
+		console.error("Error testing email:", error);
+	}
+}
+
 // Event listeners
 document.addEventListener("DOMContentLoaded", () => {
 	// Request notification permissions
@@ -670,6 +788,55 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Sync logs with backend on page load
 	syncLogsWithBackend();
+
+	// Settings panel event listeners
+	settingsToggle.addEventListener("click", function () {
+		settingsPanel.classList.add("active");
+	});
+
+	closeSettings.addEventListener("click", function () {
+		settingsPanel.classList.remove("active");
+	});
+
+	// Click outside to close settings panel
+	document.addEventListener("click", function (event) {
+		if (
+			!settingsPanel.contains(event.target) &&
+			event.target !== settingsToggle &&
+			settingsPanel.classList.contains("active")
+		) {
+			settingsPanel.classList.remove("active");
+		}
+	});
+
+	// Test email functionality
+	testEmailBtn.addEventListener("click", async function () {
+		testEmailBtn.disabled = true;
+		testEmailBtn.innerHTML =
+			'<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+		try {
+			const response = await fetch(`${API_BASE_URL}/api/test-email`);
+			const data = await response.json();
+
+			if (data.success) {
+				showNotification("Test email sent successfully!");
+			} else {
+				showNotification(
+					"Failed to send test email. Check server logs.",
+					"error"
+				);
+			}
+		} catch (error) {
+			showNotification("Error: " + error.message, "error");
+		} finally {
+			testEmailBtn.disabled = false;
+			testEmailBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Test Email';
+		}
+	});
+
+	// Check email configuration status
+	checkEmailConfiguration();
 });
 
 // Sync logs between localStorage and backend
@@ -682,7 +849,7 @@ async function syncLogsWithBackend() {
 		}
 
 		// Try to push local logs to server
-		const response = await fetch("/api/logs/sync", {
+		const response = await fetch(`${API_BASE_URL}/api/logs/sync`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",

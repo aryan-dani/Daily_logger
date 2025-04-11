@@ -776,3 +776,180 @@ footer {
 	font-weight: 500;
 	font-size: 0.95rem;
 }
+
+/* Settings Panel Styles */
+.settings-icon {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	z-index: 10;
+	color: white;
+	font-size: 1.5rem;
+	cursor: pointer;
+	background-color: rgba(255, 255, 255, 0.2);
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: var(--transition);
+}
+
+.settings-icon:hover {
+	background-color: rgba(255, 255, 255, 0.3);
+	transform: rotate(30deg);
+}
+
+.settings-panel {
+	position: fixed;
+	top: 0;
+	right: -400px;
+	width: 380px;
+	height: 100vh;
+	background-color: white;
+	box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+	z-index: 1000;
+	transition: right 0.4s ease;
+	overflow-y: auto;
+}
+
+.settings-panel.active {
+	right: 0;
+}
+
+.settings-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px;
+	border-bottom: 1px solid var(--light-color);
+}
+
+.settings-header h2 {
+	color: var(--primary-color);
+	font-size: 1.6rem;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.close-settings {
+	font-size: 1.8rem;
+	cursor: pointer;
+	color: var(--grey-color);
+	transition: var(--transition);
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+}
+
+.close-settings:hover {
+	color: var(--accent-color);
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.settings-content {
+	padding: 20px;
+}
+
+.settings-section {
+	margin-bottom: 30px;
+}
+
+.settings-section h3 {
+	font-size: 1.2rem;
+	color: var(--dark-color);
+	margin-bottom: 10px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.settings-description {
+	color: var(--grey-color);
+	margin-bottom: 15px;
+	font-size: 0.95rem;
+}
+
+.settings-status {
+	background-color: var(--light-color);
+	padding: 15px;
+	border-radius: 8px;
+	margin-bottom: 15px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.status-indicator {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.status-dot {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background-color: #ccc;
+}
+
+.status-dot.active {
+	background-color: #2ecc71;
+	box-shadow: 0 0 6px rgba(46, 204, 113, 0.4);
+}
+
+.status-dot.warning {
+	background-color: #f39c12;
+	box-shadow: 0 0 6px rgba(243, 156, 18, 0.4);
+}
+
+.status-dot.error {
+	background-color: #e74c3c;
+	box-shadow: 0 0 6px rgba(231, 76, 60, 0.4);
+}
+
+.status-text {
+	font-size: 0.9rem;
+	color: var(--dark-color);
+}
+
+.settings-info {
+	padding: 15px;
+	border-left: 3px solid var(--primary-color);
+	background-color: #f0f7ff;
+	font-size: 0.9rem;
+	border-radius: 0 5px 5px 0;
+	color: var(--dark-color);
+}
+
+.settings-info code {
+	background-color: rgba(255, 255, 255, 0.6);
+	padding: 2px 5px;
+	border-radius: 3px;
+	font-family: monospace;
+	font-size: 0.9em;
+}
+
+.secondary {
+	background-color: white;
+	color: var(--primary-color);
+	border: 1px solid var(--primary-color);
+}
+
+.secondary:hover {
+	background-color: var(--light-color);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+	.settings-panel {
+		width: 100%;
+		right: -100%;
+	}
+}

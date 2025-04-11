@@ -23,7 +23,44 @@
 					<i class="fas fa-laptop-code"></i> Colt Steele's Bootcamp Journal
 				</h1>
 				<p class="date-display" id="current-date"></p>
+				<div class="settings-icon">
+					<i class="fas fa-cog" id="settings-toggle"></i>
+				</div>
 			</header>
+
+			<!-- Settings Panel -->
+			<div class="settings-panel" id="settings-panel">
+				<div class="settings-header">
+					<h2><i class="fas fa-cog"></i> Journal Settings</h2>
+					<span class="close-settings">&times;</span>
+				</div>
+				<div class="settings-content">
+					<div class="settings-section">
+						<h3><i class="fas fa-envelope"></i> Email Notifications</h3>
+						<p class="settings-description">
+							Get notified by email when you add new entries to your journal.
+						</p>
+
+						<div class="settings-status" id="email-status">
+							<div class="status-indicator">
+								<span class="status-dot"></span>
+								<span class="status-text">Loading email configuration...</span>
+							</div>
+							<button class="btn secondary" id="test-email-btn">
+								<i class="fas fa-paper-plane"></i> Test Email
+							</button>
+						</div>
+
+						<div class="settings-info">
+							<p>
+								<i class="fas fa-info-circle"></i> To configure email
+								notifications, edit the <code>email-config.js</code> file in the
+								server directory.
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
 
 			<div class="main-content">
 				<div class="input-section">
