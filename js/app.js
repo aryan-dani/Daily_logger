@@ -650,10 +650,91 @@ function initializeApp() {
 		});
 	}
 
+	// Set up test email functionality
+	if (testEmailBtn && emailStatus) {
+		// Check email status on load
+		checkEmailStatus();
+
+		// Add event listener for test email button
+		testEmailBtn.addEventListener("click", sendTestEmail);
+	}
+
 	// Request notification permission
 	requestNotificationPermission();
 
 	console.log("App initialization complete!");
+}
+
+// Make sure debugApp is available globally
+window.debugApp = debugApp;
+
+// Check email configuration status
+async function checkEmailStatus() {
+	if (!emailStatus) {
+		console.error("Email status element not found");
+		return;
+	}
+
+	try {
+		const response = await fetch(`${window.API_BASE_URL}/api/status`, {
+			credentials: "include",
+		});
+
+		if (!response.ok) {
+			throw new Error(`Failed to check email status: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		if (data.emailEnabled) {
+			emailStatus.textContent = "Email notifications are enabled";
+			emailStatus.className = "status enabled";
+			testEmailBtn.disabled = false;
+		} else {
+			emailStatus.textContent = "Email notifications are disabled";
+			emailStatus.className = "status disabled";
+			testEmailBtn.disabled = true;
+		}
+	} catch (error) {
+		console.error("Error checking email status:", error);
+		emailStatus.textContent = "Unable to check email status";
+		emailStatus.className = "status error";
+		testEmailBtn.disabled = true;
+	}
+}
+
+// Send test email
+async function sendTestEmail() {
+	if (!testEmailBtn || !emailStatus) {
+		console.error("Test email button or email status element not found");
+		return;
+	}
+
+	// Disable button and show loading state
+	testEmailBtn.disabled = true;
+	testEmailBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+	try {
+		const response = await fetch(`${window.API_BASE_URL}/api/test-email`, {
+			credentials: "include",
+		});
+
+		const data = await response.json();
+
+		if (data.success) {
+			showToast("Test email sent successfully!", "success");
+		} else {
+			showToast("Failed to send test email: " + data.message, "error");
+		}
+	} catch (error) {
+		console.error("Error sending test email:", error);
+		showToast("Error sending test email: " + error.message, "error");
+	} finally {
+		// Reset button state
+		testEmailBtn.disabled = false;
+		testEmailBtn.innerHTML =
+			'<i class="fas fa-paper-plane"></i> Send Test Email';
+	}
 }
 
 // Call initializeApp only if the user is authenticated
@@ -664,6 +745,3 @@ if (window.isAuthenticated) {
 	console.log("Waiting for authentication before initializing app");
 	// The init function will be called after authentication in index.html
 }
-
-// Make sure debugApp is available globally
-window.debugApp = debugApp;

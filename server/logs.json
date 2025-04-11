@@ -381,5 +381,33 @@
     "message": "User logged in",
     "username": "admin",
     "userId": 1
+  },
+  {
+    "timestamp": "2025-04-11T20:30:34.196Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:30:37.008Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:32:43.765Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:32:46.408Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
   }
 ]

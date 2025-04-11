@@ -82,7 +82,8 @@ app.use(
 		resave: false,
 		saveUninitialized: false,
 		cookie: {
-			secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+			secure: process.env.NODE_ENV === "production", 
+			sameSite: 'None', // Use secure cookies in production
 			maxAge: 24 * 60 * 60 * 1000, // 24 hours
 		},
 	})
@@ -370,6 +371,17 @@ app.get("/api/status", isAuthenticated, (req, res) => {
 			emailConfig.options
 		),
 		logs: logs.length,
+	});
+});
+
+// Get email status - simplified endpoint for checking email configuration
+app.get("/api/email-status", (req, res) => {
+	res.json({
+		emailEnabled: !!(
+			emailConfig.enabled &&
+			emailConfig.transport &&
+			emailConfig.options
+		),
 	});
 });
 
