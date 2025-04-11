@@ -2,10 +2,12 @@
 
 // Colt Steele's Web Developer Bootcamp Learning Journal
 
-// API base URL - dynamically set based on environment
+// API base URL - get from config.js or use dynamic detection
 const API_BASE_URL =
-	window.location.hostname === "localhost" ||
-	window.location.hostname === "127.0.0.1"
+	window.API_BASE_URL !== undefined
+		? window.API_BASE_URL
+		: window.location.hostname === "localhost" ||
+		  window.location.hostname === "127.0.0.1"
 		? "" // Empty for localhost (relative URLs)
 		: window.location.origin; // Full origin for deployed site
 

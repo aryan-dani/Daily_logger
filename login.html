@@ -132,10 +132,15 @@
 			</form>
 		</div>
 
+		<script src="js/config.js"></script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
+				// Get API URL from config
+				const API_BASE_URL =
+					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
+
 				// Check if user is already logged in
-				fetch("/api/user")
+				fetch(`${API_BASE_URL}/api/user`)
 					.then((response) => {
 						if (!response.ok) {
 							throw new Error("Not authenticated");
@@ -163,7 +168,7 @@
 
 						console.log("Attempting login with username:", username);
 
-						fetch("/api/login", {
+						fetch(`${API_BASE_URL}/api/login`, {
 							method: "POST",
 							headers: {
 								"Content-Type": "application/json",

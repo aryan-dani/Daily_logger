@@ -8,12 +8,29 @@ const { v4: uuidv4 } = require("uuid");
 const nodemailer = require("nodemailer");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Determine if we're in production environment
 const isProduction = process.env.NODE_ENV === "production";
+
+// Set up CORS for cross-domain requests (GitHub Pages to Render)
+// This allows GitHub Pages to connect to your Render backend
+app.use(
+	cors({
+		origin: isProduction
+			? [
+					"https://aryan-dani.github.io",
+					"https://your-custom-domain.com",
+			  ] // Replace with your actual domains
+			: "http://localhost:3000",
+		credentials: true, // Allow cookies for authentication
+		methods: ["GET", "POST", "PUT", "DELETE"],
+		allowedHeaders: ["Content-Type", "Authorization"],
+	})
+);
 
 // Configure email - first try environment variables, then fall back to local config
 let emailConfig;
@@ -220,13 +237,24 @@ function saveLogs(logs) {
 
 // Helper function to send email notification
 async function sendEmailNotification(log) {
+	// Add extensive logging for troubleshooting
+	console.log("Attempting to send email notification for log:", log.title);
+
 	if (!emailConfig || !emailConfig.enabled) {
-		console.log("Email notifications are disabled");
+		console.log(
+			"Email notifications are disabled - email config:",
+			emailConfig ? "exists" : "missing",
+			"enabled:",
+			emailConfig ? emailConfig.enabled : "N/A"
+		);
 		return false;
 	}
 
+	console.log(`Email will be sent to: ${emailConfig.to}`);
+
 	try {
-		// Create a transporter
+		// Create a transporter with debug logging
+		console.log("Creating email transporter with host:", emailConfig.host);
 		const transporter = nodemailer.createTransport({
 			host: emailConfig.host,
 			port: emailConfig.port,
@@ -235,7 +263,13 @@ async function sendEmailNotification(log) {
 				user: emailConfig.user,
 				pass: emailConfig.password,
 			},
+			debug: true, // Enable debug logs
+			logger: true, // Log to console
 		});
+
+		// Verify connection configuration
+		await transporter.verify();
+		console.log("Email transporter verification successful");
 
 		// Format date
 		const date = new Date(log.timestamp).toLocaleDateString("en-US", {
@@ -259,31 +293,43 @@ async function sendEmailNotification(log) {
 
 		const categoryName = categoryDisplayNames[log.category] || log.category;
 
-		// Prepare email content
+		// Prepare email content with a back-to-site link
+		const siteUrl = isProduction
+			? "https://aryan-dani.github.io/Daily_logger" // Replace with your actual GitHub Pages URL
+			: `http://localhost:${PORT}`;
+
 		const emailSubject = `New Daily Logger Entry: ${log.title}`;
 		const emailContent = `
-      <h2>New Entry in Daily Logger</h2>
-      <p><strong>Date:</strong> ${date}</p>
-      <p><strong>Title:</strong> ${log.title}</p>
-      <p><strong>Category:</strong> ${categoryName}</p>
-      <p><strong>Understanding Level:</strong> ${log.importance}/5</p>
-      <p><strong>Content:</strong></p>
-      <div style="padding: 10px; background-color: #f5f5f5; border-left: 4px solid #007bff; margin: 10px 0;">
-        ${log.content.replace(/\n/g, "<br>")}
-      </div>
-      <hr>
-      <p><small>This is an automated notification from your Daily Logger app.</small></p>
-    `;
+        <h2>New Entry in Daily Logger</h2>
+        <p><strong>Date:</strong> ${date}</p>
+        <p><strong>Title:</strong> ${log.title}</p>
+        <p><strong>Category:</strong> ${categoryName}</p>
+        <p><strong>Understanding Level:</strong> ${log.importance}/5</p>
+        <p><strong>Content:</strong></p>
+        <div style="padding: 10px; background-color: #f5f5f5; border-left: 4px solid #007bff; margin: 10px 0;">
+            ${log.content.replace(/\n/g, "<br>")}
+        </div>
+        <hr>
+        <p>
+            <a href="${siteUrl}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
+                View All Entries
+            </a>
+        </p>
+        <p><small>This is an automated notification from your Daily Logger app.</small></p>
+        `;
 
-		// Send mail
+		// Send mail with defined transport object
+		console.log("Sending email now...");
 		const info = await transporter.sendMail({
 			from: emailConfig.from || emailConfig.user,
 			to: emailConfig.to,
 			subject: emailSubject,
 			html: emailContent,
+			priority: "high",
 		});
 
-		console.log("Email notification sent:", info.messageId);
+		console.log("Email notification sent successfully:", info.messageId);
+		console.log("Email preview URL:", nodemailer.getTestMessageUrl(info));
 		return true;
 	} catch (error) {
 		console.error("Error sending email notification:", error);
@@ -416,6 +462,7 @@ app.delete("/api/logs/:id", (req, res) => {
 // Test email configuration
 app.get("/api/test-email", async (req, res) => {
 	if (!emailConfig || !emailConfig.enabled) {
+		console.log("Test email failed - Email notifications are disabled");
 		return res.status(400).json({
 			success: false,
 			message: "Email notifications are not configured or disabled",
@@ -423,7 +470,11 @@ app.get("/api/test-email", async (req, res) => {
 	}
 
 	try {
-		// Create a transporter
+		// Create a transporter with debugging enabled
+		console.log(
+			"Test email - Creating transporter with host:",
+			emailConfig.host
+		);
 		const transporter = nodemailer.createTransport({
 			host: emailConfig.host,
 			port: emailConfig.port,
@@ -432,23 +483,44 @@ app.get("/api/test-email", async (req, res) => {
 				user: emailConfig.user,
 				pass: emailConfig.password,
 			},
+			debug: true,
+			logger: true,
 		});
 
+		// Verify connection configuration
+		await transporter.verify();
+		console.log("Test email - Transporter verification successful");
+
+		// Prepare site URL for the link in the email
+		const siteUrl = isProduction
+			? "https://your-github-username.github.io/Daily_logger" // Replace with your actual GitHub Pages URL
+			: `http://localhost:${PORT}`;
+
 		// Send test email
+		console.log("Test email - Sending email now...");
 		const info = await transporter.sendMail({
 			from: emailConfig.from || emailConfig.user,
 			to: emailConfig.to,
 			subject: "Daily Logger - Test Email",
+			priority: "high",
 			html: `
         <h2>Daily Logger - Email Test</h2>
         <p>This is a test email from your Daily Logger application.</p>
         <p>If you're receiving this email, your email notifications are configured correctly!</p>
+        <p>New log entries will now trigger email notifications with their content.</p>
         <hr>
+        <p>
+            <a href="${siteUrl}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
+                Open Daily Logger
+            </a>
+        </p>
         <p><small>This is an automated test from your Daily Logger app.</small></p>
       `,
 		});
 
-		console.log("Test email sent:", info.messageId);
+		console.log("Test email sent successfully:", info.messageId);
+		console.log("Test email preview URL:", nodemailer.getTestMessageUrl(info));
+
 		res.json({ success: true, message: "Test email sent successfully!" });
 	} catch (error) {
 		console.error("Error sending test email:", error);
