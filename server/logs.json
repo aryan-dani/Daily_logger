@@ -348,5 +348,38 @@
       },
       "messageId": "<33a3e754-91db-54b4-8a8e-5ca7de30f4d9@gmail.com>"
     }
+  },
+  {
+    "timestamp": "2025-04-11T20:24:01.596Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:24:08.347Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:24:40.308Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:24:49.782Z",
+    "message": "Failed login attempt",
+    "username": "admin"
+  },
+  {
+    "timestamp": "2025-04-11T20:24:54.680Z",
+    "message": "User logged in",
+    "username": "admin",
+    "userId": 1
   }
 ]

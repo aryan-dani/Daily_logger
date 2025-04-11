@@ -2,14 +2,14 @@
   {
     "id": 1,
     "username": "admin",
-    "password": "$2b$10$XSEssIDul50GaBcUVdKRIOSgxWNCDof5tOmSy2MOmpKS1E3e4FdaK",
+    "password": "$2b$10$zjrtqJDpf7BqSH3H1DZj5udHuLUvQHGrA6mlxPlr5AF4.mqUSl80m",
     "email": "admin@example.com",
     "role": "admin"
   },
   {
     "id": 2,
     "username": "srushti",
-    "password": "$2b$10$h60DWFoyXrD8NPsbIxRWA.y9dr0uI5w/kpqtpG.TLtqvadCRX9s2a",
+    "password": "$2b$10$W/aShasmCH0NECQPGVDfmek8k8MLd4yurad6vjRp8xphhmxrcTTNu",
     "email": "srushti@example.com",
     "role": "user"
   }
