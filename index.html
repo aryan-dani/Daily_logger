@@ -1,0 +1,111 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Daily Logger</title>
+		<link rel="stylesheet" href="css/style.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1><i class="fas fa-book"></i> Daily Logger</h1>
+				<p class="date-display" id="current-date"></p>
+			</header>
+
+			<div class="main-content">
+				<div class="input-section">
+					<h2>Add New Log Entry</h2>
+					<div class="input-group">
+						<label for="log-title">Title:</label>
+						<input
+							type="text"
+							id="log-title"
+							placeholder="Enter log title..." />
+					</div>
+					<div class="input-group">
+						<label for="log-category">Category:</label>
+						<select id="log-category">
+							<option value="work">Work</option>
+							<option value="personal">Personal</option>
+							<option value="health">Health</option>
+							<option value="education">Education</option>
+							<option value="other">Other</option>
+						</select>
+					</div>
+					<div class="input-group">
+						<label for="log-content">Description:</label>
+						<textarea
+							id="log-content"
+							placeholder="What happened today?"></textarea>
+					</div>
+					<div class="input-group">
+						<label for="log-importance">Importance:</label>
+						<div class="importance-slider">
+							<input
+								type="range"
+								id="log-importance"
+								min="1"
+								max="5"
+								value="3" />
+							<div class="importance-labels">
+								<span>Low</span>
+								<span>High</span>
+							</div>
+						</div>
+					</div>
+					<button id="save-log" class="btn primary">
+						<i class="fas fa-save"></i> Save Log
+					</button>
+				</div>
+
+				<div class="logs-display">
+					<div class="logs-header">
+						<h2>Your Logs</h2>
+						<div class="filter-controls">
+							<select title="name" id="filter-category">
+								<option value="all">All Categories</option>
+								<option value="work">Work</option>
+								<option value="personal">Personal</option>
+								<option value="health">Health</option>
+								<option value="education">Education</option>
+								<option value="other">Other</option>
+							</select>
+							<div class="search-box">
+								<input
+									type="text"
+									id="search-logs"
+									placeholder="Search logs..." />
+								<i class="fas fa-search"></i>
+							</div>
+						</div>
+					</div>
+					<div class="logs-container" id="logs-list">
+						<!-- Logs will be added here dynamically -->
+					</div>
+				</div>
+			</div>
+
+			<footer>
+				<p>
+					&copy; 2025 Daily Logger | <span id="stats-count">0</span> logs saved
+				</p>
+			</footer>
+
+			<!-- Log details modal -->
+			<div id="log-modal" class="modal">
+				<div class="modal-content">
+					<span class="close-modal">&times;</span>
+					<div id="modal-content"></div>
+				</div>
+			</div>
+		</div>
+
+		<script src="js/app.js"></script>
+	</body>
+</html>

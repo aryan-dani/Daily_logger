@@ -1,0 +1,25 @@
+{
+	"name": "daily-logger",
+	"version": "1.0.0",
+	"description": "A beautiful daily logger application with frontend and backend",
+	"main": "server/server.js",
+	"scripts": {
+		"start": "node server/server.js",
+		"dev": "nodemon server/server.js"
+	},
+	"keywords": [
+		"logger",
+		"daily",
+		"events"
+	],
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"cors": "^2.8.5",
+		"express": "^4.18.2",
+		"morgan": "^1.10.0"
+	},
+	"devDependencies": {
+		"nodemon": "^3.0.1"
+	}
+}
