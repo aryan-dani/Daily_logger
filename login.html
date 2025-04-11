@@ -135,21 +135,34 @@
 		<script src="js/config.js"></script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
-				// Get API URL from config
+				console.log("Login page loaded");
+
+				// Get API URL from config with better fallback
 				const API_BASE_URL =
 					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
 
+				// Add logging to help diagnose issues
+				console.log("Using API URL:", API_BASE_URL);
+
 				// Check if user is already logged in
-				fetch(`${API_BASE_URL}/api/user`)
+				fetch(`${API_BASE_URL}/api/user`, {
+					credentials: "include", // Important for cross-origin requests with cookies
+				})
 					.then((response) => {
+						console.log("Auth check response:", response.status);
 						if (!response.ok) {
 							throw new Error("Not authenticated");
 						}
 						return response.json();
 					})
 					.then((data) => {
+						console.log("Auth check data:", data);
 						if (data.authenticated) {
-							window.location.href = "/";
+							// Fix GitHub Pages redirect
+							const basePath = window.location.pathname.includes("github.io")
+								? "/Daily_logger"
+								: "";
+							window.location.href = `${basePath}/`;
 						}
 					})
 					.catch((error) => {
@@ -184,7 +197,13 @@
 							})
 							.then((data) => {
 								if (data.success) {
-									window.location.href = "/";
+									// Fix GitHub Pages redirect on successful login
+									const basePath = window.location.pathname.includes(
+										"github.io"
+									)
+										? "/Daily_logger"
+										: "";
+									window.location.href = `${basePath}/`;
 								} else {
 									errorMessage.style.display = "block";
 									document.getElementById("password").value = "";

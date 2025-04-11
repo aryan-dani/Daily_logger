@@ -8,29 +8,12 @@ const { v4: uuidv4 } = require("uuid");
 const nodemailer = require("nodemailer");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
-const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Determine if we're in production environment
 const isProduction = process.env.NODE_ENV === "production";
-
-// Set up CORS for cross-domain requests (GitHub Pages to Render)
-// This allows GitHub Pages to connect to your Render backend
-app.use(
-	cors({
-		origin: isProduction
-			? [
-					"https://aryan-dani.github.io",
-					"https://your-custom-domain.com",
-			  ] // Replace with your actual domains
-			: "http://localhost:3000",
-		credentials: true, // Allow cookies for authentication
-		methods: ["GET", "POST", "PUT", "DELETE"],
-		allowedHeaders: ["Content-Type", "Authorization"],
-	})
-);
 
 // Configure email - first try environment variables, then fall back to local config
 let emailConfig;
@@ -295,7 +278,7 @@ async function sendEmailNotification(log) {
 
 		// Prepare email content with a back-to-site link
 		const siteUrl = isProduction
-			? "https://aryan-dani.github.io/Daily_logger" // Replace with your actual GitHub Pages URL
+			? "https://your-github-username.github.io/Daily_logger" // Replace with your actual GitHub Pages URL
 			: `http://localhost:${PORT}`;
 
 		const emailSubject = `New Daily Logger Entry: ${log.title}`;
