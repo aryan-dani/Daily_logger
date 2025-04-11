@@ -535,5 +535,107 @@
     "message": "User logged in",
     "username": "srushti",
     "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:49:57.527Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:49:59.853Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:50:08.329Z",
+    "message": "Log created",
+    "logId": "m9d9gq3zntsle",
+    "title": "hmm"
+  },
+  {
+    "timestamp": "2025-04-11T20:50:11.805Z",
+    "message": "Email notification sent",
+    "logId": "m9d9gq3zntsle",
+    "info": {
+      "accepted": [
+        "daniaryan212@gmail.com"
+      ],
+      "rejected": [],
+      "ehlo": [
+        "SIZE 35882577",
+        "8BITMIME",
+        "AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH",
+        "ENHANCEDSTATUSCODES",
+        "PIPELINING",
+        "CHUNKING",
+        "SMTPUTF8"
+      ],
+      "envelopeTime": 877,
+      "messageTime": 948,
+      "messageSize": 829,
+      "response": "250 2.0.0 OK  1744404612 d2e1a72fcca58-73bd23344c6sm2164086b3a.174 - gsmtp",
+      "envelope": {
+        "from": "daniaryan212@gmail.com",
+        "to": [
+          "daniaryan212@gmail.com"
+        ]
+      },
+      "messageId": "<77daa7f4-3827-a475-9a45-8a2bd3048c8e@gmail.com>"
+    }
+  },
+  {
+    "timestamp": "2025-04-11T20:50:24.306Z",
+    "message": "Users database recreated with default users",
+    "users": [
+      "admin",
+      "srushti"
+    ]
+  },
+  {
+    "timestamp": "2025-04-11T20:50:28.291Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-11T20:50:41.298Z",
+    "message": "Log created",
+    "logId": "m9d9hfiyvq5q5",
+    "title": "what even"
+  },
+  {
+    "timestamp": "2025-04-11T20:50:44.398Z",
+    "message": "Email notification sent",
+    "logId": "m9d9hfiyvq5q5",
+    "info": {
+      "accepted": [
+        "daniaryan212@gmail.com"
+      ],
+      "rejected": [],
+      "ehlo": [
+        "SIZE 35882577",
+        "8BITMIME",
+        "AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH",
+        "ENHANCEDSTATUSCODES",
+        "PIPELINING",
+        "CHUNKING",
+        "SMTPUTF8"
+      ],
+      "envelopeTime": 798,
+      "messageTime": 699,
+      "messageSize": 841,
+      "response": "250 2.0.0 OK  1744404645 d2e1a72fcca58-73bd21c5ea3sm2167903b3a.66 - gsmtp",
+      "envelope": {
+        "from": "daniaryan212@gmail.com",
+        "to": [
+          "daniaryan212@gmail.com"
+        ]
+      },
+      "messageId": "<0764e6c0-699b-4006-561f-a83c4369d71b@gmail.com>"
+    }
   }
 ]

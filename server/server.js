@@ -198,6 +198,50 @@ function isAuthenticated(req, res, next) {
 	return res.status(401).json({ error: "Unauthorized" });
 }
 
+// Token authentication middleware
+function verifyToken(req, res, next) {
+	// Check for session first (local usage)
+	if (req.session && req.session.userId) {
+		return next();
+	}
+
+	// Check for token in headers
+	const authHeader = req.headers.authorization;
+	if (authHeader && authHeader.startsWith("Bearer ")) {
+		const token = authHeader.substring(7);
+		try {
+			// Decode token (simple implementation)
+			const decoded = Buffer.from(token, "base64").toString();
+			const [userId, timestamp] = decoded.split(":");
+
+			// Verify token is not too old (24 hours)
+			if (Date.now() - Number(timestamp) > 24 * 60 * 60 * 1000) {
+				return res.status(401).json({ error: "Token expired" });
+			}
+
+			// Find the user
+			const user = users.find((user) => user.id === Number(userId));
+			if (!user) {
+				return res.status(401).json({ error: "Invalid token" });
+			}
+
+			// Set userId in request for later use
+			req.userId = Number(userId);
+			return next();
+		} catch (err) {
+			return res.status(401).json({ error: "Invalid token format" });
+		}
+	}
+
+	// No authentication found
+	logToFile("Unauthorized access attempt", {
+		path: req.path,
+		ip: req.ip,
+		headers: req.headers,
+	});
+	return res.status(401).json({ error: "Unauthorized" });
+}
+
 // === ROUTES ===
 
 // Authentication status route
@@ -235,12 +279,16 @@ app.post("/api/login", (req, res) => {
 	// Set user session
 	req.session.userId = user.id;
 
+	// Generate a token for cross-origin authentication
+	const token = Buffer.from(`${user.id}:${Date.now()}:auth`).toString("base64");
+
 	logToFile("User logged in", { username, userId: user.id });
 
 	return res.json({
 		success: true,
 		username: user.username,
 		email: user.email,
+		token: token, // Send the token to the client
 	});
 });
 
@@ -252,12 +300,12 @@ app.get("/api/logout", (req, res) => {
 });
 
 // Get all logs
-app.get("/api/logs", isAuthenticated, (req, res) => {
+app.get("/api/logs", verifyToken, (req, res) => {
 	res.json(logs);
 });
 
 // Create a new log
-app.post("/api/logs", isAuthenticated, (req, res) => {
+app.post("/api/logs", verifyToken, (req, res) => {
 	const log = req.body;
 
 	// Validate log
@@ -282,7 +330,7 @@ app.post("/api/logs", isAuthenticated, (req, res) => {
 });
 
 // Update a log
-app.put("/api/logs/:id", isAuthenticated, (req, res) => {
+app.put("/api/logs/:id", verifyToken, (req, res) => {
 	const { id } = req.params;
 	const updatedLog = req.body;
 
@@ -305,7 +353,7 @@ app.put("/api/logs/:id", isAuthenticated, (req, res) => {
 });
 
 // Delete a log
-app.delete("/api/logs/:id", isAuthenticated, (req, res) => {
+app.delete("/api/logs/:id", verifyToken, (req, res) => {
 	const { id } = req.params;
 
 	// Filter out the log to delete
@@ -325,7 +373,7 @@ app.delete("/api/logs/:id", isAuthenticated, (req, res) => {
 });
 
 // Sync logs from client (bulk add/update)
-app.post("/api/logs/sync", isAuthenticated, (req, res) => {
+app.post("/api/logs/sync", verifyToken, (req, res) => {
 	const clientLogs = req.body.logs;
 
 	if (!Array.isArray(clientLogs)) {
@@ -356,7 +404,7 @@ app.post("/api/logs/sync", isAuthenticated, (req, res) => {
 	});
 
 	// Save to file
-	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+	fs.writeFileSync(logsDbPath, JSON.stringify(logs, "utf8"));
 
 	logToFile("Logs synced from client", { added, updated });
 
@@ -364,7 +412,7 @@ app.post("/api/logs/sync", isAuthenticated, (req, res) => {
 });
 
 // Get server status (including email configuration)
-app.get("/api/status", isAuthenticated, (req, res) => {
+app.get("/api/status", verifyToken, (req, res) => {
 	res.json({
 		status: "running",
 		version: "1.0.0",
@@ -389,7 +437,7 @@ app.get("/api/email-status", (req, res) => {
 });
 
 // Send test email
-app.get("/api/test-email", isAuthenticated, (req, res) => {
+app.get("/api/test-email", verifyToken, (req, res) => {
 	// Check if email is configured
 	if (!emailConfig.enabled || !emailConfig.transport || !emailConfig.options) {
 		return res.status(400).json({
@@ -398,8 +446,14 @@ app.get("/api/test-email", isAuthenticated, (req, res) => {
 		});
 	}
 
-	// Get current user
-	const user = users.find((user) => user.id === req.session.userId);
+	// Get current user - need to handle both session and token auth
+	let user;
+	if (req.session && req.session.userId) {
+		user = users.find((user) => user.id === req.session.userId);
+	} else if (req.userId) {
+		// This comes from verifyToken middleware
+		user = users.find((user) => user.id === req.userId);
+	}
 
 	if (!user || !user.email) {
 		return res.status(400).json({
