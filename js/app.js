@@ -850,20 +850,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// Settings panel event listeners
 	settingsToggle.addEventListener("click", function () {
-		settingsPanel.classList.add("active");
+		console.log("Settings toggle clicked");
+		settingsPanel.classList.toggle("active");
 	});
 
 	closeSettings.addEventListener("click", function () {
+		console.log("Close settings clicked");
 		settingsPanel.classList.remove("active");
 	});
 
 	// Click outside to close settings panel
 	document.addEventListener("click", function (event) {
 		if (
+			settingsPanel.classList.contains("active") &&
 			!settingsPanel.contains(event.target) &&
-			event.target !== settingsToggle &&
-			settingsPanel.classList.contains("active")
+			event.target !== settingsToggle
 		) {
+			console.log("Clicked outside settings panel, closing");
 			settingsPanel.classList.remove("active");
 		}
 	});

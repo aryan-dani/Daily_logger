@@ -8,44 +8,13 @@ const { v4: uuidv4 } = require("uuid");
 const nodemailer = require("nodemailer");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Determine if we're in production environment
 const isProduction = process.env.NODE_ENV === "production";
-
-// Configure email - first try environment variables, then fall back to local config
-let emailConfig;
-try {
-	// First check for environment variables (with support for Heroku Deploy HD_ prefixed vars)
-	if (process.env.EMAIL_HOST || process.env.HD_EMAIL_HOST) {
-		emailConfig = {
-			enabled:
-				process.env.EMAIL_ENABLED === "true" ||
-				process.env.HD_EMAIL_ENABLED === "true",
-			host: process.env.EMAIL_HOST || process.env.HD_EMAIL_HOST,
-			port: process.env.EMAIL_PORT || process.env.HD_EMAIL_PORT || 587,
-			secure:
-				process.env.EMAIL_SECURE === "true" ||
-				process.env.HD_EMAIL_SECURE === "true",
-			user: process.env.EMAIL_USER || process.env.HD_EMAIL_USER,
-			password: process.env.EMAIL_PASSWORD || process.env.HD_EMAIL_PASSWORD,
-			from: process.env.EMAIL_FROM || process.env.HD_EMAIL_FROM,
-			to: process.env.EMAIL_TO || process.env.HD_EMAIL_TO,
-		};
-		console.log("Email configuration loaded from environment variables");
-	} else {
-		// Fall back to local config file
-		emailConfig = require("./email-config");
-		console.log("Email configuration loaded from local file");
-	}
-} catch (error) {
-	console.log(
-		"Email configuration not found or invalid. Email notifications will not be sent."
-	);
-	emailConfig = { enabled: false };
-}
 
 // Middleware
 app.use(bodyParser.json());
@@ -60,13 +29,94 @@ app.use(
 		cookie: {
 			secure: false, // Turn off secure cookies for local testing
 			maxAge: 24 * 60 * 60 * 1000, // 24 hours
+			sameSite: isProduction ? "none" : "lax", // Required for cross-site cookies
 		},
 	})
 );
 
-// Serve static files
-app.use(express.static(path.join(__dirname, "..")));
+// Set up CORS for cross-domain requests (GitHub Pages to Render)
+// This allows GitHub Pages to connect to your Render backend
+app.use(
+	cors({
+		origin: isProduction
+			? ["https://aryan-dani.github.io"] // Your actual GitHub Pages domain
+			: "http://localhost:3000",
+		credentials: true, // Allow cookies for authentication
+		methods: ["GET", "POST", "PUT", "DELETE"],
+		allowedHeaders: ["Content-Type", "Authorization"],
+	})
+);
 
+// Configure email - first try environment variables, then fall back to local config
+let emailConfig;
+try {
+	// Check for environment variables
+	if (process.env.EMAIL_HOST) {
+		emailConfig = {
+			enabled: process.env.EMAIL_ENABLED === "true",
+			host: process.env.EMAIL_HOST,
+			port: process.env.EMAIL_PORT || 587,
+			secure: process.env.EMAIL_SECURE === "true",
+			user: process.env.EMAIL_USER,
+			password: process.env.EMAIL_PASSWORD,
+			from: process.env.EMAIL_FROM,
+			to: process.env.EMAIL_TO,
+		};
+		console.log("Email configuration loaded from environment variables");
+	} else {
+		// Fall back to local config file
+		emailConfig = require("./email-config");
+		console.log("Email configuration loaded from local file");
+	}
+} catch (error) {
+	console.log(
+		"Email configuration not found or invalid. Email notifications will not be sent."
+	);
+	emailConfig = { enabled: false };
+}
+
+// Authentication check middleware - only applied AFTER login endpoints
+const checkAuth = (req, res, next) => {
+	console.log(
+		`Auth check for path: ${req.path}, Auth status: ${
+			req.session.authenticated ? "Authenticated" : "Not authenticated"
+		}`
+	);
+
+	// Skip auth for login page, static assets, and authentication endpoints
+	if (
+		req.path === "/login.html" ||
+		req.path === "/api/login" ||
+		req.path === "/api/status" ||
+		req.path.endsWith(".css") ||
+		req.path.endsWith(".js") ||
+		req.path.indexOf("/js/") > -1 ||
+		req.path.indexOf("/css/") > -1 ||
+		req.path.endsWith(".ico")
+	) {
+		return next();
+	}
+
+	// Check if user is logged in
+	if (req.session.authenticated) {
+		return next();
+	}
+
+	// If this is an API request, send 401 response
+	if (req.path.startsWith("/api/")) {
+		return res.status(401).json({ error: "Authentication required" });
+	}
+
+	// Redirect index page requests to login
+	if (req.path === "/" || req.path === "/index.html") {
+		return res.redirect("/login.html");
+	}
+
+	// For other paths, also redirect to login
+	res.redirect("/login.html");
+};
+
+// Public routes that don't require authentication
 // Login endpoint - placed BEFORE the auth middleware
 app.post("/api/login", (req, res) => {
 	const { username, password } = req.body;
@@ -89,7 +139,6 @@ app.post("/api/login", (req, res) => {
 	}
 });
 
-// Public routes that don't require authentication
 app.get("/api/status", (req, res) => {
 	res.json({
 		status: "online",
@@ -98,38 +147,16 @@ app.get("/api/status", (req, res) => {
 	});
 });
 
-// Authentication check middleware - only applied AFTER login endpoints
-const checkAuth = (req, res, next) => {
-	console.log(
-		`Auth check for path: ${req.path}, Auth status: ${
-			req.session.authenticated ? "Authenticated" : "Not authenticated"
-		}`
-	);
+// Serve static files for login page without authentication
+app.get("/login.html", (req, res) => {
+	res.sendFile(path.join(__dirname, "..", "login.html"));
+});
 
-	// Skip auth for login route and static files
-	if (
-		req.path === "/login.html" ||
-		req.path === "/api/login" ||
-		req.path === "/api/status"
-	) {
-		return next();
-	}
+// Serve CSS and JS files without authentication
+app.use("/css", express.static(path.join(__dirname, "..", "css")));
+app.use("/js", express.static(path.join(__dirname, "..", "js")));
 
-	// Check if user is logged in
-	if (req.session.authenticated) {
-		return next();
-	}
-
-	// If this is an API request, send 401 response
-	if (req.path.startsWith("/api/")) {
-		return res.status(401).json({ error: "Authentication required" });
-	}
-
-	// Otherwise redirect to login page
-	res.redirect("/login.html");
-};
-
-// Get current user info
+// Get current user info - available without full auth middleware
 app.get("/api/user", (req, res) => {
 	console.log(
 		`User info request - Auth status: ${
@@ -161,6 +188,9 @@ app.get("/api/logout", (req, res) => {
 
 // Apply authentication middleware for protected routes
 app.use(checkAuth);
+
+// Serve static files after auth middleware is applied
+app.use(express.static(path.join(__dirname, "..")));
 
 // Data file path - use a writable location in production
 const dataFile = isProduction
@@ -278,7 +308,7 @@ async function sendEmailNotification(log) {
 
 		// Prepare email content with a back-to-site link
 		const siteUrl = isProduction
-			? "https://your-github-username.github.io/Daily_logger" // Replace with your actual GitHub Pages URL
+			? "https://aryan-dani.github.io/Daily_logger" // Using your actual GitHub Pages URL
 			: `http://localhost:${PORT}`;
 
 		const emailSubject = `New Daily Logger Entry: ${log.title}`;
@@ -476,7 +506,7 @@ app.get("/api/test-email", async (req, res) => {
 
 		// Prepare site URL for the link in the email
 		const siteUrl = isProduction
-			? "https://your-github-username.github.io/Daily_logger" // Replace with your actual GitHub Pages URL
+			? "https://aryan-dani.github.io/Daily_logger" // Your actual GitHub Pages URL
 			: `http://localhost:${PORT}`;
 
 		// Send test email
@@ -516,7 +546,12 @@ app.get("/api/test-email", async (req, res) => {
 
 // Catch-all route to handle SPA routing
 app.get("*", (req, res) => {
-	res.sendFile(path.join(__dirname, "..", "index.html"));
+	// Check if user is authenticated
+	if (req.session.authenticated) {
+		res.sendFile(path.join(__dirname, "..", "index.html"));
+	} else {
+		res.redirect("/login.html");
+	}
 });
 
 // Start the server

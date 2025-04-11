@@ -177,5 +177,38 @@
 		<!-- Scripts -->
 		<script src="js/config.js"></script>
 		<script src="js/app.js"></script>
+		<script>
+			// Additional authentication check on page load
+			document.addEventListener("DOMContentLoaded", function () {
+				console.log("Checking authentication status on page load...");
+
+				// Get API URL from config
+				const API_BASE_URL =
+					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
+
+				fetch(`${API_BASE_URL}/api/user`, {
+					credentials: "include", // Important for cross-origin requests with cookies
+				})
+					.then((response) => {
+						if (!response.ok) {
+							console.log("Not authenticated, redirecting to login");
+							window.location.href = "/login.html";
+							throw new Error("Not authenticated");
+						}
+						return response.json();
+					})
+					.then((data) => {
+						if (!data.authenticated) {
+							console.log("Not authenticated, redirecting to login");
+							window.location.href = "/login.html";
+						} else {
+							console.log("Authentication verified, user:", data.username);
+						}
+					})
+					.catch((error) => {
+						console.error("Authentication error:", error);
+					});
+			});
+		</script>
 	</body>
 </html>

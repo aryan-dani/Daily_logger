@@ -149,7 +149,7 @@
 					credentials: "include", // Important for cross-origin requests with cookies
 				})
 					.then((response) => {
-						console.log("Auth check response:", response.status);
+						console.log("Auth check response status:", response.status);
 						if (!response.ok) {
 							throw new Error("Not authenticated");
 						}
@@ -158,11 +158,8 @@
 					.then((data) => {
 						console.log("Auth check data:", data);
 						if (data.authenticated) {
-							// Fix GitHub Pages redirect
-							const basePath = window.location.pathname.includes("github.io")
-								? "/Daily_logger"
-								: "";
-							window.location.href = `${basePath}/`;
+							console.log("Already authenticated, redirecting to main page");
+							window.location.href = "/"; // Simply redirecting to root should work locally
 						}
 					})
 					.catch((error) => {
@@ -181,6 +178,16 @@
 
 						console.log("Attempting login with username:", username);
 
+						// Clear previous error
+						errorMessage.style.display = "none";
+
+						// Show loading state on button
+						const loginButton = this.querySelector("button");
+						const originalButtonText = loginButton.innerHTML;
+						loginButton.disabled = true;
+						loginButton.innerHTML =
+							'<i class="fas fa-circle-notch fa-spin"></i> Logging in...';
+
 						fetch(`${API_BASE_URL}/api/login`, {
 							method: "POST",
 							headers: {
@@ -190,20 +197,18 @@
 							credentials: "include", // Important for session cookies
 						})
 							.then((response) => {
+								console.log("Login response status:", response.status);
 								if (!response.ok) {
-									throw new Error("Login failed");
+									throw new Error(
+										"Login failed with status: " + response.status
+									);
 								}
 								return response.json();
 							})
 							.then((data) => {
+								console.log("Login response data:", data);
 								if (data.success) {
-									// Fix GitHub Pages redirect on successful login
-									const basePath = window.location.pathname.includes(
-										"github.io"
-									)
-										? "/Daily_logger"
-										: "";
-									window.location.href = `${basePath}/`;
+									window.location.href = "/";
 								} else {
 									errorMessage.style.display = "block";
 									document.getElementById("password").value = "";
@@ -213,6 +218,11 @@
 								console.error("Login error:", error);
 								errorMessage.style.display = "block";
 								document.getElementById("password").value = "";
+							})
+							.finally(() => {
+								// Restore button state
+								loginButton.disabled = false;
+								loginButton.innerHTML = originalButtonText;
 							});
 					});
 			});
