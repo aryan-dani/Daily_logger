@@ -1,47 +1,70 @@
 /** @format */
 
+// DEBUG - verify script loading
+console.log("DEBUG: app.js is loading at", new Date().toTimeString());
+
 // Colt Steele's Web Developer Bootcamp Learning Journal
 
-// API base URL - get from config.js or use dynamic detection
-const API_BASE_URL =
-	window.API_BASE_URL !== undefined
-		? window.API_BASE_URL
-		: window.location.hostname === "localhost" ||
-		  window.location.hostname === "127.0.0.1"
-		? "" // Empty for localhost (relative URLs)
-		: window.location.origin; // Full origin for deployed site
+// Use the API_BASE_URL and BASE_PATH from config.js
+console.log("App initialization with API_BASE_URL:", window.API_BASE_URL);
+console.log("App initialization with BASE_PATH:", window.BASE_PATH);
 
-// DOM Elements
-const currentDateEl = document.getElementById("current-date");
-const logTitleEl = document.getElementById("log-title");
-const logCategoryEl = document.getElementById("log-category");
-const logContentEl = document.getElementById("log-content");
-const logImportanceEl = document.getElementById("log-importance");
-const saveLogBtn = document.getElementById("save-log");
-const logsListEl = document.getElementById("logs-list");
-const filterCategoryEl = document.getElementById("filter-category");
-const searchLogsEl = document.getElementById("search-logs");
-const statsCountEl = document.getElementById("stats-count");
-const logModal = document.getElementById("log-modal");
-const modalContent = document.getElementById("modal-content");
-const closeModal = document.querySelector(".close-modal");
-const progressBarEl = document.getElementById("course-progress-bar");
-const daysLoggedEl = document.getElementById("days-logged");
-const progressPercentageEl = document.getElementById("progress-percentage");
-const notificationEl = document.getElementById("notification");
-const notificationTextEl = document.getElementById("notification-text");
+// Debug function to help diagnose issues
+function debugApp() {
+	console.log("---------- DEBUG INFO ----------");
+	console.log("API_BASE_URL:", window.API_BASE_URL);
+	console.log("BASE_PATH:", window.BASE_PATH);
+	console.log("isAuthenticated:", window.isAuthenticated);
+	console.log("appInitialized:", window.appInitialized);
+	console.log("User session data:", document.cookie);
 
-// Settings panel elements
-const settingsToggle = document.getElementById("settings-toggle");
-const settingsPanel = document.getElementById("settings-panel");
-const closeSettings = document.querySelector(".close-settings");
-const testEmailBtn = document.getElementById("test-email-btn");
-const emailStatus = document.getElementById("email-status");
+	// Check if settings toggle exists
+	const settingsToggle = document.getElementById("settings-toggle");
+	console.log("Settings toggle exists:", !!settingsToggle);
 
-// DOM Elements for authentication
-const userInfoEl = document.createElement("div");
-userInfoEl.className = "user-info";
-document.querySelector("header").appendChild(userInfoEl);
+	// Check if settings panel exists
+	const settingsPanel = document.getElementById("settings-panel");
+	console.log("Settings panel exists:", !!settingsPanel);
+
+	// Check email configuration
+	fetch(`${window.API_BASE_URL}/api/email-status`, {
+		credentials: "include",
+	})
+		.then((response) => response.json())
+		.then((data) => {
+			console.log("Email configuration status:", data);
+			alert("Debug info logged to console. Check browser developer tools.");
+		})
+		.catch((error) => {
+			console.error("Failed to check email status:", error);
+			alert("Debug info logged to console. Email status check failed.");
+		});
+}
+
+// DOM Elements - only create references, actual elements are found in initializeApp
+let currentDateEl,
+	logTitleEl,
+	logCategoryEl,
+	logContentEl,
+	logImportanceEl,
+	saveLogBtn,
+	logsListEl,
+	filterCategoryEl,
+	searchLogsEl,
+	statsCountEl,
+	logModal,
+	modalContent,
+	closeModal,
+	progressBarEl,
+	daysLoggedEl,
+	progressPercentageEl,
+	notificationEl,
+	notificationTextEl,
+	settingsToggle,
+	settingsPanel,
+	closeSettings,
+	testEmailBtn,
+	emailStatus;
 
 // Course config - approximately how many days the Web Developer Bootcamp takes
 const COURSE_DURATION = 65; // Based on Colt's course sections
@@ -55,11 +78,21 @@ function displayCurrentDate() {
 		month: "long",
 		day: "numeric",
 	};
-	currentDateEl.textContent = now.toLocaleDateString("en-US", options);
+	if (currentDateEl) {
+		currentDateEl.textContent = now.toLocaleDateString("en-US", options);
+		console.log("Date updated successfully:", currentDateEl.textContent);
+	} else {
+		console.error("Current date element not found");
+	}
 }
 
 // Show notification
 function showNotification(message, type = "success") {
+	if (!notificationEl || !notificationTextEl) {
+		console.error("Notification elements not found");
+		return;
+	}
+
 	notificationTextEl.textContent = message;
 	notificationEl.className = "notification"; // Reset classes
 	notificationEl.classList.add(type);
@@ -80,7 +113,7 @@ function showNotification(message, type = "success") {
 	);
 
 	// Also trigger browser notification if permission granted
-	if (Notification.permission === "granted") {
+	if (Notification && Notification.permission === "granted") {
 		const notification = new Notification("Web Dev Bootcamp Journal", {
 			body: message,
 			icon: "https://img.icons8.com/color/96/000000/code.png",
@@ -146,6 +179,11 @@ function generateId() {
 
 // Calculate and update course progress
 function updateCourseProgress(logs) {
+	if (!daysLoggedEl || !progressPercentageEl || !progressBarEl) {
+		console.error("Progress elements not found");
+		return { daysLogged: 0, progressPercentage: 0 };
+	}
+
 	// Get unique days with entries
 	const uniqueDays = new Set();
 	logs.forEach((log) => {
@@ -171,6 +209,20 @@ function updateCourseProgress(logs) {
 
 // Save log to backend and localStorage
 async function saveLog() {
+	console.log("Save log function called");
+
+	// Verify DOM elements before proceeding
+	if (!logTitleEl || !logCategoryEl || !logContentEl || !logImportanceEl) {
+		console.error("Missing form elements:", {
+			title: !!logTitleEl,
+			category: !!logCategoryEl,
+			content: !!logContentEl,
+			importance: !!logImportanceEl,
+		});
+		showToast("Error: Form elements not found", "error");
+		return;
+	}
+
 	const title = logTitleEl.value.trim();
 	const category = logCategoryEl.value;
 	const content = logContentEl.value.trim();
@@ -196,10 +248,14 @@ async function saveLog() {
 	};
 
 	try {
+		console.log("API_BASE_URL:", window.API_BASE_URL);
+
 		// Send log to backend with dynamic URL
 		const url = isEditing
-			? `${API_BASE_URL}/api/logs/${log.id}`
-			: `${API_BASE_URL}/api/logs`;
+			? `${window.API_BASE_URL}/api/logs/${log.id}`
+			: `${window.API_BASE_URL}/api/logs`;
+
+		console.log("Sending log to URL:", url);
 		const method = isEditing ? "PUT" : "POST";
 
 		const response = await fetch(url, {
@@ -208,10 +264,15 @@ async function saveLog() {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(log),
+			credentials: "include", // For authentication cookies
 		});
 
+		console.log("Response status:", response.status);
+
 		if (!response.ok) {
-			throw new Error(`Failed to ${isEditing ? "update" : "save"} entry`);
+			throw new Error(
+				`Failed to ${isEditing ? "update" : "save"} entry: ${response.status}`
+			);
 		}
 
 		// Handle localStorage
@@ -255,6 +316,14 @@ async function saveLog() {
 			"success"
 		);
 
+		// Clear form - do this first before any dialogs
+		if (!isEditing) {
+			logTitleEl.value = "";
+			logCategoryEl.value = "html-css";
+			logContentEl.value = "";
+			logImportanceEl.value = 3;
+		}
+
 		// Ask if the user wants to continue adding entries
 		if (!isEditing) {
 			setTimeout(() => {
@@ -272,16 +341,11 @@ async function saveLog() {
 				}
 			}, 500);
 		}
-
-		// Clear form - move this after the confirm dialog
-		if (!isEditing) {
-			logTitleEl.value = "";
-			logCategoryEl.value = "html-css";
-			logContentEl.value = "";
-			logImportanceEl.value = 3;
-		}
 	} catch (error) {
 		console.error("Error saving entry:", error);
+
+		// Show error notification
+		showToast("Error saving entry: " + error.message, "error");
 
 		// Fallback to localStorage if backend fails
 		const logs = JSON.parse(localStorage.getItem("logs") || "[]");
@@ -299,56 +363,8 @@ async function saveLog() {
 
 		localStorage.setItem("logs", JSON.stringify(logs));
 
-		// Reset button if we were editing
-		if (isEditing) {
-			saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
-			saveLogBtn.removeAttribute("data-edit-id");
-			saveLogBtn.removeAttribute("data-edit-timestamp");
-		}
-
-		// Update UI
+		// Update UI with local data
 		displayLogs();
-
-		// Generate appropriate message based on section
-		const sectionMessage = getSectionMotivationalMessage(category);
-
-		// Show notification for new entry
-		if (!isEditing) {
-			showNotification(sectionMessage);
-		}
-
-		showToast(
-			isEditing
-				? "Entry updated locally (offline mode)"
-				: "Learning entry saved locally (offline mode)",
-			"success"
-		);
-
-		// Ask if the user wants to continue adding entries
-		if (!isEditing) {
-			setTimeout(() => {
-				const continueIterate = confirm(
-					"Continue to iterate? Add another entry?"
-				);
-				if (continueIterate) {
-					// Focus on the title field to start a new entry
-					logTitleEl.focus();
-				} else {
-					// If user doesn't want to continue, maybe scroll to the logs section
-					document
-						.querySelector(".logs-section")
-						.scrollIntoView({ behavior: "smooth" });
-				}
-			}, 500);
-		}
-
-		// Clear form - move this after the confirm dialog
-		if (!isEditing) {
-			logTitleEl.value = "";
-			logCategoryEl.value = "html-css";
-			logContentEl.value = "";
-			logImportanceEl.value = 3;
-		}
 	}
 }
 
@@ -465,23 +481,39 @@ function getCategoryDisplayName(category) {
 // Fetch logs from the backend
 async function fetchLogs() {
 	try {
-		const response = await fetch(`${API_BASE_URL}/api/logs`);
+		console.log("Fetching logs from:", `${window.API_BASE_URL}/api/logs`);
+		const response = await fetch(`${window.API_BASE_URL}/api/logs`, {
+			credentials: "include", // This is critical for authenticated requests
+		});
 
 		if (!response.ok) {
+			console.error(
+				"Failed to fetch logs:",
+				response.status,
+				response.statusText
+			);
 			throw new Error(`Failed to fetch logs: ${response.status}`);
 		}
 
 		const logs = await response.json();
+		console.log("Fetched logs:", logs);
 		return logs;
 	} catch (error) {
 		console.error("Error fetching logs:", error);
 		// Fall back to localStorage if backend fetch fails
-		return JSON.parse(localStorage.getItem("logs") || "[]");
+		const localLogs = JSON.parse(localStorage.getItem("logs") || "[]");
+		console.log("Using local logs instead:", localLogs);
+		return localLogs;
 	}
 }
 
 // Display logs in the UI
 async function displayLogs() {
+	if (!logsListEl || !statsCountEl) {
+		console.error("Logs list or stats count element not found");
+		return;
+	}
+
 	try {
 		let logs = await fetchLogs();
 
@@ -492,8 +524,8 @@ async function displayLogs() {
 		updateCourseProgress(logs);
 
 		// Apply filters
-		const filterCategory = filterCategoryEl.value;
-		const searchTerm = searchLogsEl.value.toLowerCase();
+		const filterCategory = filterCategoryEl ? filterCategoryEl.value : "all";
+		const searchTerm = searchLogsEl ? searchLogsEl.value.toLowerCase() : "";
 
 		const filteredLogs = logs.filter((log) => {
 			// Filter by category
@@ -566,368 +598,72 @@ async function displayLogs() {
 	}
 }
 
-// Delete log
-async function deleteLog(id) {
-	if (!confirm("Are you sure you want to delete this learning entry?")) {
-		return;
-	}
+// Initialize app
+function initializeApp() {
+	console.log("Initializing app...");
+	window.appInitialized = true;
 
-	try {
-		const response = await fetch(`${API_BASE_URL}/api/logs/${id}`, {
-			method: "DELETE",
-		});
-
-		if (!response.ok) {
-			throw new Error(`Failed to delete entry: ${response.status}`);
-		}
-
-		// Also delete from localStorage
-		let logs = JSON.parse(localStorage.getItem("logs") || "[]");
-		logs = logs.filter((log) => log.id !== id);
-		localStorage.setItem("logs", JSON.stringify(logs));
-
-		// Update UI
-		displayLogs();
-		showToast("Entry deleted successfully", "success");
-	} catch (error) {
-		console.error("Error deleting entry:", error);
-
-		// Fallback to localStorage if backend fails
-		let logs = JSON.parse(localStorage.getItem("logs") || "[]");
-		logs = logs.filter((log) => log.id !== id);
-		localStorage.setItem("logs", JSON.stringify(logs));
-
-		// Update UI
-		displayLogs();
-		showToast("Entry deleted locally", "success");
-	}
-}
-
-// Edit log
-function editLog(log) {
-	if (!log) return;
-
-	// Fill form with log data
-	logTitleEl.value = log.title;
-	logCategoryEl.value = log.category;
-	logContentEl.value = log.content;
-	logImportanceEl.value = log.importance;
-
-	// Change button text
-	saveLogBtn.innerHTML = '<i class="fas fa-save"></i> Update Entry';
-	saveLogBtn.dataset.editId = log.id;
-	saveLogBtn.dataset.editTimestamp = log.timestamp;
-
-	// Scroll to form and focus the title field
-	document
-		.querySelector(".input-section")
-		.scrollIntoView({ behavior: "smooth" });
-	setTimeout(() => logTitleEl.focus(), 500);
-}
-
-// Open log details modal
-function openLogDetails(log) {
-	if (!log) return;
-
-	// Create importance dots
-	let importanceDots = "";
-	for (let i = 1; i <= 5; i++) {
-		const activeClass = i <= log.importance ? "" : "inactive";
-		importanceDots += `<span class="importance-dot ${activeClass}"></span>`;
-	}
-
-	// Get understanding level text
-	let understandingText;
-	if (log.importance <= 1) understandingText = "Need more review";
-	else if (log.importance === 2) understandingText = "Basic understanding";
-	else if (log.importance === 3) understandingText = "Good grasp";
-	else if (log.importance === 4) understandingText = "Strong understanding";
-	else understandingText = "Fully understood";
-
-	// Fill modal content
-	modalContent.innerHTML = `
-        <h2 class="log-detail-title">${log.title}</h2>
-        <div class="log-detail-meta">
-            <span>Section: <span class="log-category category-${
-							log.category
-						}">${getCategoryDisplayName(log.category)}</span></span>
-            <span>Date: ${formatDate(log.timestamp)}</span>
-            <div class="log-importance">
-                Understanding: 
-                <div class="importance-dots" title="${understandingText}">
-                    ${importanceDots}
-                </div>
-                <span class="comprehension-text">(${understandingText})</span>
-            </div>
-        </div>
-        <div class="log-detail-content">
-            ${log.content.replace(/\n/g, "<br>")}
-        </div>
-        <button class="btn primary" id="edit-from-modal">
-            <i class="fas fa-edit"></i> Edit Entry
-        </button>
-    `;
-
-	// Show modal
-	logModal.style.display = "block";
-
-	// Add edit button functionality
-	document.getElementById("edit-from-modal").addEventListener("click", () => {
-		closeLogModal();
-		editLog(log);
-	});
-}
-
-// Close log details modal
-function closeLogModal() {
-	logModal.style.display = "none";
-}
-
-// Check email configuration
-async function checkEmailConfiguration() {
-	try {
-		const statusDot = emailStatus.querySelector(".status-dot");
-		const statusText = emailStatus.querySelector(".status-text");
-
-		// Get email status from API endpoint rather than checking file directly
-		const response = await fetch(`${API_BASE_URL}/api/status`);
-
-		if (response.ok) {
-			const statusData = await response.json();
-
-			if (statusData.emailEnabled) {
-				// Email is configured correctly
-				statusDot.classList.add("active");
-				statusText.textContent = "Email notifications are enabled";
-			} else {
-				// Email configuration exists but might be incomplete
-				statusDot.classList.add("warning");
-				statusText.textContent = "Email notifications are disabled";
-			}
-		} else {
-			// Can't access API status
-			statusDot.classList.add("error");
-			statusText.textContent = "Can't check email configuration";
-		}
-	} catch (error) {
-		console.error("Error checking email configuration:", error);
-		const statusDot = emailStatus.querySelector(".status-dot");
-		const statusText = emailStatus.querySelector(".status-text");
-		statusDot.classList.add("error");
-		statusText.textContent = "Error checking email configuration";
-	}
-}
-
-// Test email function
-async function testEmailNotification() {
-	try {
-		emailStatus.innerHTML =
-			'<i class="fas fa-spinner fa-spin"></i> Testing email...';
-
-		const response = await fetch(`${API_BASE_URL}/api/test-email`);
-		const result = await response.json();
-
-		if (result.success) {
-			emailStatus.innerHTML =
-				'<i class="fas fa-check-circle text-success"></i> Test email sent successfully!';
-		} else {
-			emailStatus.innerHTML = `<i class="fas fa-exclamation-circle text-danger"></i> ${result.message}`;
-		}
-	} catch (error) {
-		emailStatus.innerHTML =
-			'<i class="fas fa-exclamation-circle text-danger"></i> Failed to send test email. Check server logs.';
-		console.error("Error testing email:", error);
-	}
-}
-
-// Check authentication status
-async function checkAuthStatus() {
-	try {
-		const response = await fetch(`${API_BASE_URL}/api/user`);
-
-		if (!response.ok) {
-			// If not authenticated, redirect to login page
-			window.location.href = "/login.html";
-			return;
-		}
-
-		const data = await response.json();
-		if (data.authenticated) {
-			// Update UI with username
-			userInfoEl.innerHTML = `
-        <span>Welcome, ${data.username}</span>
-        <button id="logoutBtn" class="logout-btn">
-          <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-      `;
-
-			// Add logout functionality
-			document.getElementById("logoutBtn").addEventListener("click", logout);
-		} else {
-			window.location.href = "/login.html";
-		}
-	} catch (error) {
-		console.error("Error checking authentication:", error);
-		window.location.href = "/login.html";
-	}
-}
-
-// Logout function
-async function logout() {
-	try {
-		const response = await fetch(`${API_BASE_URL}/api/logout`);
-		const data = await response.json();
-
-		if (data.success) {
-			window.location.href = "/login.html";
-		} else {
-			showToast("Logout failed. Please try again.", "error");
-		}
-	} catch (error) {
-		console.error("Logout error:", error);
-		showToast("Logout failed. Please try again.", "error");
-	}
-}
-
-// Event listeners
-document.addEventListener("DOMContentLoaded", () => {
-	// Check authentication first
-	checkAuthStatus();
-
-	// Request notification permissions
-	requestNotificationPermission();
+	// Find DOM elements
+	currentDateEl = document.getElementById("current-date");
+	logTitleEl = document.getElementById("log-title");
+	logCategoryEl = document.getElementById("log-category");
+	logContentEl = document.getElementById("log-content");
+	logImportanceEl = document.getElementById("log-importance");
+	saveLogBtn = document.getElementById("save-log");
+	logsListEl = document.getElementById("logs-list");
+	filterCategoryEl = document.getElementById("filter-category");
+	searchLogsEl = document.getElementById("search-logs");
+	statsCountEl = document.getElementById("stats-count");
+	logModal = document.getElementById("log-modal");
+	modalContent = document.getElementById("modal-content");
+	closeModal = document.querySelector(".close-modal");
+	progressBarEl = document.getElementById("course-progress-bar");
+	daysLoggedEl = document.getElementById("days-logged");
+	progressPercentageEl = document.getElementById("progress-percentage");
+	notificationEl = document.getElementById("notification");
+	notificationTextEl = document.getElementById("notification-text");
+	settingsToggle = document.getElementById("settings-toggle");
+	settingsPanel = document.getElementById("settings-panel");
+	closeSettings = document.querySelector(".close-settings");
+	testEmailBtn = document.getElementById("test-email-btn");
+	emailStatus = document.getElementById("email-status");
 
 	// Display current date
 	displayCurrentDate();
 
-	// Display logs
+	// Load and display logs
 	displayLogs();
 
-	// Save log button
-	saveLogBtn.addEventListener("click", saveLog);
+	// Add event listeners
+	if (saveLogBtn) {
+		saveLogBtn.addEventListener("click", saveLog);
+	}
 
-	// Filter logs by category
-	filterCategoryEl.addEventListener("change", displayLogs);
-
-	// Search logs
-	searchLogsEl.addEventListener("input", () => {
-		// Debounce search to avoid too many updates
-		clearTimeout(searchLogsEl.searchTimeout);
-		searchLogsEl.searchTimeout = setTimeout(() => {
-			displayLogs();
-		}, 300);
-	});
-
-	// Close modal when clicking on X
-	closeModal.addEventListener("click", closeLogModal);
-
-	// Close modal when clicking outside
-	window.addEventListener("click", (e) => {
-		if (e.target === logModal) {
-			closeLogModal();
-		}
-	});
-
-	// Keyboard shortcuts
-	window.addEventListener("keydown", (e) => {
-		// Escape key to close modal
-		if (e.key === "Escape" && logModal.style.display === "block") {
-			closeLogModal();
-		}
-
-		// Ctrl+Enter to save entry when in textarea
-		if (
-			e.key === "Enter" &&
-			e.ctrlKey &&
-			document.activeElement === logContentEl
-		) {
-			saveLog();
-		}
-	});
-
-	// Sync logs with backend on page load
-	syncLogsWithBackend();
-
-	// Settings panel event listeners
-	settingsToggle.addEventListener("click", function () {
-		console.log("Settings toggle clicked");
-		settingsPanel.classList.toggle("active");
-	});
-
-	closeSettings.addEventListener("click", function () {
-		console.log("Close settings clicked");
-		settingsPanel.classList.remove("active");
-	});
-
-	// Click outside to close settings panel
-	document.addEventListener("click", function (event) {
-		if (
-			settingsPanel.classList.contains("active") &&
-			!settingsPanel.contains(event.target) &&
-			event.target !== settingsToggle
-		) {
-			console.log("Clicked outside settings panel, closing");
-			settingsPanel.classList.remove("active");
-		}
-	});
-
-	// Test email functionality
-	testEmailBtn.addEventListener("click", async function () {
-		testEmailBtn.disabled = true;
-		testEmailBtn.innerHTML =
-			'<i class="fas fa-spinner fa-spin"></i> Sending...';
-
-		try {
-			const response = await fetch(`${API_BASE_URL}/api/test-email`);
-			const data = await response.json();
-
-			if (data.success) {
-				showNotification("Test email sent successfully!");
-			} else {
-				showNotification(
-					"Failed to send test email. Check server logs.",
-					"error"
-				);
-			}
-		} catch (error) {
-			showNotification("Error: " + error.message, "error");
-		} finally {
-			testEmailBtn.disabled = false;
-			testEmailBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Test Email';
-		}
-	});
-
-	// Check email configuration status
-	checkEmailConfiguration();
-});
-
-// Sync logs between localStorage and backend
-async function syncLogsWithBackend() {
-	try {
-		const localLogs = JSON.parse(localStorage.getItem("logs") || "[]");
-
-		if (localLogs.length === 0) {
-			return;
-		}
-
-		// Try to push local logs to server
-		const response = await fetch(`${API_BASE_URL}/api/logs/sync`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ logs: localLogs }),
+	// Add event listeners for settings panel
+	if (settingsToggle && settingsPanel && closeSettings) {
+		settingsToggle.addEventListener("click", function () {
+			settingsPanel.classList.toggle("show");
 		});
 
-		if (!response.ok) {
-			throw new Error("Failed to sync entries with server");
-		}
-
-		console.log("Learning entries synced with backend successfully");
-
-		// Refresh logs display after sync
-		displayLogs();
-	} catch (error) {
-		console.error("Error syncing entries:", error);
+		closeSettings.addEventListener("click", function () {
+			settingsPanel.classList.remove("show");
+		});
 	}
+
+	// Request notification permission
+	requestNotificationPermission();
+
+	console.log("App initialization complete!");
 }
+
+// Call initializeApp only if the user is authenticated
+if (window.isAuthenticated) {
+	console.log("User is authenticated, initializing app");
+	initializeApp();
+} else {
+	console.log("Waiting for authentication before initializing app");
+	// The init function will be called after authentication in index.html
+}
+
+// Make sure debugApp is available globally
+window.debugApp = debugApp;

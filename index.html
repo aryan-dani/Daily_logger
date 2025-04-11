@@ -19,14 +19,29 @@
 	<body>
 		<div class="container">
 			<header>
-				<h1>
-					<i class="fas fa-laptop-code"></i> Colt Steele's Bootcamp Journal
-				</h1>
-				<p class="date-display" id="current-date"></p>
-				<div class="settings-icon">
-					<i class="fas fa-cog" id="settings-toggle"></i>
+				<h1><i class="fas fa-code"></i> Web Developer Bootcamp Journal</h1>
+				<p class="date-display" id="current-date">Loading date...</p>
+				<!-- Add a clearly visible settings icon -->
+				<div class="settings-icon" id="settings-toggle">
+					<i class="fas fa-cog"></i>
 				</div>
 			</header>
+
+			<!-- Debug button for testing functionality -->
+			<div style="text-align: center; margin: 10px 0">
+				<button
+					id="debug-button"
+					style="
+						padding: 5px 10px;
+						background: #ff6b6b;
+						color: white;
+						border: none;
+						border-radius: 4px;
+						cursor: pointer;
+					">
+					Debug Functions
+				</button>
+			</div>
 
 			<!-- Settings Panel -->
 			<div class="settings-panel" id="settings-panel">
@@ -175,16 +190,33 @@
 		</div>
 
 		<!-- Scripts -->
-		<script src="js/config.js"></script>
-		<script src="js/app.js"></script>
+
 		<script>
 			// Additional authentication check on page load
 			document.addEventListener("DOMContentLoaded", function () {
 				console.log("Checking authentication status on page load...");
 
-				// Get API URL from config
+				// Connect debug button
+				const debugButton = document.getElementById("debug-button");
+				if (debugButton) {
+					debugButton.addEventListener("click", function () {
+						if (typeof debugApp === "function") {
+							debugApp();
+						} else {
+							alert(
+								"Debug function not available yet. App.js might not be fully loaded."
+							);
+							console.error("debugApp function not available");
+						}
+					});
+				}
+
+				// Get API URL and BASE_PATH from config
 				const API_BASE_URL =
 					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
+
+				const BASE_PATH =
+					window.BASE_PATH !== undefined ? window.BASE_PATH : "";
 
 				fetch(`${API_BASE_URL}/api/user`, {
 					credentials: "include", // Important for cross-origin requests with cookies
@@ -192,7 +224,7 @@
 					.then((response) => {
 						if (!response.ok) {
 							console.log("Not authenticated, redirecting to login");
-							window.location.href = "/login.html";
+							window.location.href = `${BASE_PATH}/login.html`;
 							throw new Error("Not authenticated");
 						}
 						return response.json();
@@ -200,9 +232,25 @@
 					.then((data) => {
 						if (!data.authenticated) {
 							console.log("Not authenticated, redirecting to login");
-							window.location.href = "/login.html";
+							window.location.href = `${BASE_PATH}/login.html`;
 						} else {
 							console.log("Authentication verified, user:", data.username);
+							// THIS PART IS KEY: Only initialize the app after authentication
+							window.isAuthenticated = true;
+							// If app.js hasn't initialized yet, do it now
+							if (
+								typeof window.appInitialized === "undefined" ||
+								!window.appInitialized
+							) {
+								if (typeof initializeApp === "function") {
+									console.log("Initializing app from auth check");
+									initializeApp();
+								} else {
+									console.log(
+										"initializeApp function not available yet, will be called from app.js"
+									);
+								}
+							}
 						}
 					})
 					.catch((error) => {
@@ -210,5 +258,7 @@
 					});
 			});
 		</script>
+		<script src="js/config.js"></script>
+		<script src="js/app.js"></script>
 	</body>
 </html>

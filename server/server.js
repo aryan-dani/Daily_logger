@@ -1,274 +1,25 @@
 /** @format */
 
 const express = require("express");
-const bodyParser = require("body-parser");
-const fs = require("fs");
-const path = require("path");
-const { v4: uuidv4 } = require("uuid");
-const nodemailer = require("nodemailer");
 const session = require("express-session");
-const cookieParser = require("cookie-parser");
+const path = require("path");
+const fs = require("fs");
+const bcrypt = require("bcryptjs");
 const cors = require("cors");
+const nodemailer = require("nodemailer");
 
+// Initialize express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Determine if we're in production environment
-const isProduction = process.env.NODE_ENV === "production";
-
-// Middleware
-app.use(bodyParser.json());
-app.use(cookieParser());
-
-// Session configuration - deliberately simplified
-app.use(
-	session({
-		secret: "daily-logger-secret-key",
-		resave: false,
-		saveUninitialized: true,
-		cookie: {
-			secure: false, // Turn off secure cookies for local testing
-			maxAge: 24 * 60 * 60 * 1000, // 24 hours
-			sameSite: isProduction ? "none" : "lax", // Required for cross-site cookies
-		},
-	})
-);
-
-// Set up CORS for cross-domain requests (GitHub Pages to Render)
-// This allows GitHub Pages to connect to your Render backend
-app.use(
-	cors({
-		origin: isProduction
-			? ["https://aryan-dani.github.io"] // Your actual GitHub Pages domain
-			: "http://localhost:3000",
-		credentials: true, // Allow cookies for authentication
-		methods: ["GET", "POST", "PUT", "DELETE"],
-		allowedHeaders: ["Content-Type", "Authorization"],
-	})
-);
-
-// Configure email - first try environment variables, then fall back to local config
-let emailConfig;
+// Load email config if available
+let emailConfig = {};
 try {
-	// Check for environment variables
-	if (process.env.EMAIL_HOST) {
-		emailConfig = {
-			enabled: process.env.EMAIL_ENABLED === "true",
-			host: process.env.EMAIL_HOST,
-			port: process.env.EMAIL_PORT || 587,
-			secure: process.env.EMAIL_SECURE === "true",
-			user: process.env.EMAIL_USER,
-			password: process.env.EMAIL_PASSWORD,
-			from: process.env.EMAIL_FROM,
-			to: process.env.EMAIL_TO,
-		};
-		console.log("Email configuration loaded from environment variables");
-	} else {
-		// Fall back to local config file
-		emailConfig = require("./email-config");
-		console.log("Email configuration loaded from local file");
-	}
-} catch (error) {
-	console.log(
-		"Email configuration not found or invalid. Email notifications will not be sent."
-	);
-	emailConfig = { enabled: false };
-}
-
-// Authentication check middleware - only applied AFTER login endpoints
-const checkAuth = (req, res, next) => {
-	console.log(
-		`Auth check for path: ${req.path}, Auth status: ${
-			req.session.authenticated ? "Authenticated" : "Not authenticated"
-		}`
-	);
-
-	// Skip auth for login page, static assets, and authentication endpoints
-	if (
-		req.path === "/login.html" ||
-		req.path === "/api/login" ||
-		req.path === "/api/status" ||
-		req.path.endsWith(".css") ||
-		req.path.endsWith(".js") ||
-		req.path.indexOf("/js/") > -1 ||
-		req.path.indexOf("/css/") > -1 ||
-		req.path.endsWith(".ico")
-	) {
-		return next();
-	}
-
-	// Check if user is logged in
-	if (req.session.authenticated) {
-		return next();
-	}
-
-	// If this is an API request, send 401 response
-	if (req.path.startsWith("/api/")) {
-		return res.status(401).json({ error: "Authentication required" });
-	}
-
-	// Redirect index page requests to login
-	if (req.path === "/" || req.path === "/index.html") {
-		return res.redirect("/login.html");
-	}
-
-	// For other paths, also redirect to login
-	res.redirect("/login.html");
-};
-
-// Public routes that don't require authentication
-// Login endpoint - placed BEFORE the auth middleware
-app.post("/api/login", (req, res) => {
-	const { username, password } = req.body;
-
-	console.log(
-		`Login attempt - Username: "${username}", Password: "${password}"`
-	);
-
-	// Hardcoded check specifically for srushti/paneer
-	if (username === "srushti" && password === "paneer") {
-		req.session.authenticated = true;
-		req.session.username = username;
-		console.log("Login successful!");
-		return res.json({ success: true });
-	} else {
-		console.log(`Login failed - Username: ${username}`);
-		return res
-			.status(401)
-			.json({ success: false, message: "Invalid username or password" });
-	}
-});
-
-app.get("/api/status", (req, res) => {
-	res.json({
-		status: "online",
-		environment: isProduction ? "production" : "development",
-		emailEnabled: emailConfig && emailConfig.enabled,
-	});
-});
-
-// Serve static files for login page without authentication
-app.get("/login.html", (req, res) => {
-	res.sendFile(path.join(__dirname, "..", "login.html"));
-});
-
-// Serve CSS and JS files without authentication
-app.use("/css", express.static(path.join(__dirname, "..", "css")));
-app.use("/js", express.static(path.join(__dirname, "..", "js")));
-
-// Get current user info - available without full auth middleware
-app.get("/api/user", (req, res) => {
-	console.log(
-		`User info request - Auth status: ${
-			req.session.authenticated ? "Authenticated" : "Not authenticated"
-		}`
-	);
-
-	if (req.session.authenticated) {
-		res.json({
-			authenticated: true,
-			username: req.session.username,
-		});
-	} else {
-		res.status(401).json({ authenticated: false });
-	}
-});
-
-// Logout endpoint
-app.get("/api/logout", (req, res) => {
-	req.session.destroy((err) => {
-		if (err) {
-			return res
-				.status(500)
-				.json({ success: false, message: "Could not log out" });
-		}
-		res.json({ success: true });
-	});
-});
-
-// Apply authentication middleware for protected routes
-app.use(checkAuth);
-
-// Serve static files after auth middleware is applied
-app.use(express.static(path.join(__dirname, "..")));
-
-// Data file path - use a writable location in production
-const dataFile = isProduction
-	? path.join(process.env.DATA_DIR || __dirname, "logs.json")
-	: path.join(__dirname, "logs.json");
-
-// Ensure data file exists
-try {
-	if (!fs.existsSync(dataFile)) {
-		fs.writeFileSync(dataFile, JSON.stringify([]));
-		console.log(`Created logs data file at: ${dataFile}`);
-	} else {
-		console.log(`Using existing logs data file at: ${dataFile}`);
-	}
-} catch (error) {
-	console.error(`Error accessing data file: ${error.message}`);
-	console.log("Will attempt to use in-memory storage as fallback");
-}
-
-// In-memory fallback storage for environments where file writing is restricted
-let inMemoryLogs = [];
-let useMemoryStorage = false;
-
-// Helper function to read logs
-function getLogs() {
-	if (useMemoryStorage) {
-		return inMemoryLogs;
-	}
-
-	try {
-		const data = fs.readFileSync(dataFile, "utf8");
-		return JSON.parse(data);
-	} catch (error) {
-		console.error("Error reading logs data:", error);
-		useMemoryStorage = true;
-		console.log("Switched to in-memory storage due to file access errors");
-		return inMemoryLogs;
-	}
-}
-
-// Helper function to save logs
-function saveLogs(logs) {
-	if (useMemoryStorage) {
-		inMemoryLogs = logs;
-		return;
-	}
-
-	try {
-		fs.writeFileSync(dataFile, JSON.stringify(logs, null, 2));
-	} catch (error) {
-		console.error("Error saving logs data:", error);
-		useMemoryStorage = true;
-		inMemoryLogs = logs;
-		console.log("Switched to in-memory storage due to file access errors");
-	}
-}
-
-// Helper function to send email notification
-async function sendEmailNotification(log) {
-	// Add extensive logging for troubleshooting
-	console.log("Attempting to send email notification for log:", log.title);
-
-	if (!emailConfig || !emailConfig.enabled) {
-		console.log(
-			"Email notifications are disabled - email config:",
-			emailConfig ? "exists" : "missing",
-			"enabled:",
-			emailConfig ? emailConfig.enabled : "N/A"
-		);
-		return false;
-	}
-
-	console.log(`Email will be sent to: ${emailConfig.to}`);
-
-	try {
-		// Create a transporter with debug logging
-		console.log("Creating email transporter with host:", emailConfig.host);
-		const transporter = nodemailer.createTransport({
+	const emailConfigPath = path.join(__dirname, "email-config.js");
+	if (fs.existsSync(emailConfigPath)) {
+		emailConfig = require("./email-config.js");
+		// Set up the transport object in the expected format
+		emailConfig.transport = {
 			host: emailConfig.host,
 			port: emailConfig.port,
 			secure: emailConfig.secure,
@@ -276,301 +27,522 @@ async function sendEmailNotification(log) {
 				user: emailConfig.user,
 				pass: emailConfig.password,
 			},
-			debug: true, // Enable debug logs
-			logger: true, // Log to console
-		});
-
-		// Verify connection configuration
-		await transporter.verify();
-		console.log("Email transporter verification successful");
-
-		// Format date
-		const date = new Date(log.timestamp).toLocaleDateString("en-US", {
-			weekday: "long",
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-			hour: "numeric",
-			minute: "numeric",
-		});
-
-		// Determine category display name
-		const categoryDisplayNames = {
-			"html-css": "HTML & CSS",
-			javascript: "JavaScript",
-			node: "Node.js",
-			express: "Express",
-			mongodb: "MongoDB",
-			project: "Projects",
 		};
 
-		const categoryName = categoryDisplayNames[log.category] || log.category;
-
-		// Prepare email content with a back-to-site link
-		const siteUrl = isProduction
-			? "https://aryan-dani.github.io/Daily_logger" // Using your actual GitHub Pages URL
-			: `http://localhost:${PORT}`;
-
-		const emailSubject = `New Daily Logger Entry: ${log.title}`;
-		const emailContent = `
-        <h2>New Entry in Daily Logger</h2>
-        <p><strong>Date:</strong> ${date}</p>
-        <p><strong>Title:</strong> ${log.title}</p>
-        <p><strong>Category:</strong> ${categoryName}</p>
-        <p><strong>Understanding Level:</strong> ${log.importance}/5</p>
-        <p><strong>Content:</strong></p>
-        <div style="padding: 10px; background-color: #f5f5f5; border-left: 4px solid #007bff; margin: 10px 0;">
-            ${log.content.replace(/\n/g, "<br>")}
-        </div>
-        <hr>
-        <p>
-            <a href="${siteUrl}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
-                View All Entries
-            </a>
-        </p>
-        <p><small>This is an automated notification from your Daily Logger app.</small></p>
-        `;
-
-		// Send mail with defined transport object
-		console.log("Sending email now...");
-		const info = await transporter.sendMail({
-			from: emailConfig.from || emailConfig.user,
+		// Set up the options object in the expected format
+		emailConfig.options = {
+			from: emailConfig.from,
 			to: emailConfig.to,
-			subject: emailSubject,
-			html: emailContent,
-			priority: "high",
-		});
+		};
 
-		console.log("Email notification sent successfully:", info.messageId);
-		console.log("Email preview URL:", nodemailer.getTestMessageUrl(info));
-		return true;
-	} catch (error) {
-		console.error("Error sending email notification:", error);
-		return false;
+		console.log("Email configuration loaded successfully");
+	} else {
+		console.log("No email configuration found");
 	}
+} catch (err) {
+	console.log("Error loading email config:", err);
 }
 
-// API Routes
+// Middleware
+app.use(express.static(path.join(__dirname, "..")));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configure CORS for development
+const allowedOrigins = [
+	"http://localhost:3000",
+	"http://127.0.0.1:3000",
+	"http://localhost:5500",
+	"http://127.0.0.1:5500",
+];
+
+app.use(
+	cors({
+		origin: function (origin, callback) {
+			// Allow requests with no origin (like mobile apps, curl requests)
+			if (!origin) return callback(null, true);
+
+			if (allowedOrigins.indexOf(origin) === -1) {
+				const msg =
+					"The CORS policy for this site does not allow access from the specified Origin.";
+				return callback(new Error(msg), false);
+			}
+			return callback(null, true);
+		},
+		credentials: true, // Allow cookies to be sent with requests
+	})
+);
+
+// Session configuration - critical for authentication
+app.use(
+	session({
+		secret:
+			process.env.SESSION_SECRET || "your-secret-key-change-in-production",
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+			maxAge: 24 * 60 * 60 * 1000, // 24 hours
+		},
+	})
+);
+
+// Helper function for logging
+function logToFile(message, data = {}) {
+	const logEntry = {
+		timestamp: new Date(),
+		message,
+		...data,
+	};
+
+	const logsPath = path.join(__dirname, "logs.json");
+
+	// Read existing logs
+	let logs = [];
+	try {
+		if (fs.existsSync(logsPath)) {
+			const logsData = fs.readFileSync(logsPath, "utf8");
+			logs = JSON.parse(logsData);
+		}
+	} catch (err) {
+		console.error("Error reading logs file:", err);
+	}
+
+	// Add new log entry
+	logs.push(logEntry);
+
+	// Keep only the last 1000 entries to avoid file growing too large
+	if (logs.length > 1000) {
+		logs = logs.slice(logs.length - 1000);
+	}
+
+	// Write back to file
+	try {
+		fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2), "utf8");
+	} catch (err) {
+		console.error("Error writing to logs file:", err);
+	}
+
+	// Also log to console
+	console.log(`[${logEntry.timestamp}] ${message}`, data);
+}
+
+// Load user database
+const usersDbPath = path.join(__dirname, "users.json");
+let users = [];
+
+try {
+	// Always recreate users with correct hashing
+	const defaultUsers = [
+		{
+			id: 1,
+			username: "admin",
+			password: bcrypt.hashSync("admin", 10),
+			email: "admin@example.com",
+			role: "admin",
+		},
+		{
+			id: 2,
+			username: "srushti",
+			password: bcrypt.hashSync("paneer", 10),
+			email: "srushti@example.com",
+			role: "user",
+		},
+	];
+
+	// Save to file
+	fs.writeFileSync(usersDbPath, JSON.stringify(defaultUsers, null, 2), "utf8");
+	users = defaultUsers;
+
+	logToFile("Users database recreated with default users", {
+		users: defaultUsers.map((u) => u.username),
+	});
+	console.log("Users created: admin, srushti");
+} catch (err) {
+	logToFile("Error creating users database", { error: err.message });
+	console.error("Error creating users database:", err);
+}
+
+// Load logs database
+const logsDbPath = path.join(__dirname, "logs_db.json");
+let logs = [];
+
+try {
+	if (fs.existsSync(logsDbPath)) {
+		logs = JSON.parse(fs.readFileSync(logsDbPath, "utf8"));
+	} else {
+		// Create empty logs database
+		fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+		logToFile("Created empty logs database");
+	}
+} catch (err) {
+	logToFile("Error loading logs database", { error: err.message });
+	console.error("Error loading logs database:", err);
+}
+
+// Middleware to check if user is authenticated
+function isAuthenticated(req, res, next) {
+	if (req.session && req.session.userId) {
+		return next();
+	}
+	logToFile("Unauthorized access attempt", {
+		path: req.path,
+		ip: req.ip,
+		headers: req.headers,
+	});
+	return res.status(401).json({ error: "Unauthorized" });
+}
+
+// === ROUTES ===
+
+// Authentication status route
+app.get("/api/user", (req, res) => {
+	if (req.session && req.session.userId) {
+		const user = users.find((user) => user.id === req.session.userId);
+		if (user) {
+			return res.json({
+				authenticated: true,
+				username: user.username,
+				email: user.email,
+			});
+		}
+	}
+	return res.status(401).json({ authenticated: false });
+});
+
+// Login route
+app.post("/api/login", (req, res) => {
+	const { username, password } = req.body;
+
+	if (!username || !password) {
+		return res
+			.status(400)
+			.json({ error: "Username and password are required" });
+	}
+
+	const user = users.find((u) => u.username === username);
+
+	if (!user || !bcrypt.compareSync(password, user.password)) {
+		logToFile("Failed login attempt", { username });
+		return res.status(401).json({ error: "Invalid credentials" });
+	}
+
+	// Set user session
+	req.session.userId = user.id;
+
+	logToFile("User logged in", { username, userId: user.id });
+
+	return res.json({
+		success: true,
+		username: user.username,
+		email: user.email,
+	});
+});
+
+// Logout route
+app.get("/api/logout", (req, res) => {
+	logToFile("User logged out", { userId: req.session.userId });
+	req.session.destroy();
+	res.json({ success: true });
+});
+
 // Get all logs
-app.get("/api/logs", (req, res) => {
-	const logs = getLogs();
+app.get("/api/logs", isAuthenticated, (req, res) => {
 	res.json(logs);
 });
 
 // Create a new log
-app.post("/api/logs", (req, res) => {
-	const logs = getLogs();
-	const newLog = {
-		...req.body,
-		id: uuidv4(),
-	};
+app.post("/api/logs", isAuthenticated, (req, res) => {
+	const log = req.body;
 
-	logs.push(newLog);
-	saveLogs(logs);
-
-	// Send email notification
-	sendEmailNotification(newLog)
-		.then((success) => {
-			if (success) {
-				console.log("Email notification sent successfully");
-			} else {
-				console.log(
-					"Failed to send email notification or notifications are disabled"
-				);
-			}
-		})
-		.catch((err) => {
-			console.error("Error in email notification:", err);
-		});
-
-	res.status(201).json(newLog);
-});
-
-// Sync logs from client
-app.post("/api/logs/sync", async (req, res) => {
-	try {
-		const clientLogs = req.body.logs || [];
-		if (clientLogs.length === 0) {
-			return res.status(400).json({ error: "No logs to sync" });
-		}
-
-		const serverLogs = getLogs();
-		let newLogsCount = 0;
-		let updatedLogsCount = 0;
-
-		// Process each client log
-		for (const clientLog of clientLogs) {
-			const existingLogIndex = serverLogs.findIndex(
-				(log) => log.id === clientLog.id
-			);
-
-			if (existingLogIndex === -1) {
-				// This is a new log, add it to the server
-				serverLogs.push(clientLog);
-				newLogsCount++;
-
-				// Send email notification for new logs
-				await sendEmailNotification(clientLog);
-			} else {
-				// Log exists, check if it needs updating
-				const existingLog = serverLogs[existingLogIndex];
-				const clientTimestamp = new Date(clientLog.timestamp);
-				const serverTimestamp = new Date(existingLog.timestamp);
-
-				// Update if client version is newer
-				if (clientTimestamp > serverTimestamp) {
-					serverLogs[existingLogIndex] = clientLog;
-					updatedLogsCount++;
-				}
-			}
-		}
-
-		// Save updated logs
-		saveLogs(serverLogs);
-
-		res.json({
-			success: true,
-			message: `Synced ${newLogsCount} new and ${updatedLogsCount} updated logs`,
-		});
-	} catch (error) {
-		console.error("Error syncing logs:", error);
-		res.status(500).json({ error: "Failed to sync logs: " + error.message });
+	// Validate log
+	if (!log.title || !log.content) {
+		return res.status(400).json({ error: "Title and content are required" });
 	}
+
+	// Add to logs
+	logs.push(log);
+
+	// Save to file
+	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+
+	// Check if email notification is enabled and send email
+	if (emailConfig.enabled && emailConfig.transport && emailConfig.options) {
+		sendEmailNotification(log);
+	}
+
+	logToFile("Log created", { logId: log.id, title: log.title });
+
+	res.json({ success: true, log });
 });
 
 // Update a log
-app.put("/api/logs/:id", (req, res) => {
-	const logs = getLogs();
-	const id = req.params.id;
+app.put("/api/logs/:id", isAuthenticated, (req, res) => {
+	const { id } = req.params;
 	const updatedLog = req.body;
 
+	// Find log index
 	const index = logs.findIndex((log) => log.id === id);
 
 	if (index === -1) {
 		return res.status(404).json({ error: "Log not found" });
 	}
 
+	// Update log
 	logs[index] = updatedLog;
-	saveLogs(logs);
 
-	res.json(updatedLog);
+	// Save to file
+	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+
+	logToFile("Log updated", { logId: id, title: updatedLog.title });
+
+	res.json({ success: true, log: updatedLog });
 });
 
 // Delete a log
-app.delete("/api/logs/:id", (req, res) => {
-	const logs = getLogs();
-	const id = req.params.id;
+app.delete("/api/logs/:id", isAuthenticated, (req, res) => {
+	const { id } = req.params;
 
-	const filteredLogs = logs.filter((log) => log.id !== id);
+	// Filter out the log to delete
+	const initialCount = logs.length;
+	logs = logs.filter((log) => log.id !== id);
 
-	if (filteredLogs.length === logs.length) {
+	if (logs.length === initialCount) {
 		return res.status(404).json({ error: "Log not found" });
 	}
 
-	saveLogs(filteredLogs);
+	// Save to file
+	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
 
-	res.status(204).end();
+	logToFile("Log deleted", { logId: id });
+
+	res.json({ success: true });
 });
 
-// Test email configuration
-app.get("/api/test-email", async (req, res) => {
-	if (!emailConfig || !emailConfig.enabled) {
-		console.log("Test email failed - Email notifications are disabled");
+// Sync logs from client (bulk add/update)
+app.post("/api/logs/sync", isAuthenticated, (req, res) => {
+	const clientLogs = req.body.logs;
+
+	if (!Array.isArray(clientLogs)) {
+		return res.status(400).json({ error: "Logs must be an array" });
+	}
+
+	let added = 0;
+	let updated = 0;
+
+	// Process each client log
+	clientLogs.forEach((clientLog) => {
+		const index = logs.findIndex((log) => log.id === clientLog.id);
+
+		if (index === -1) {
+			// Add new log
+			logs.push(clientLog);
+			added++;
+		} else {
+			// Update existing log, but only if the client version is newer
+			const clientDate = new Date(clientLog.timestamp);
+			const serverDate = new Date(logs[index].timestamp);
+
+			if (clientDate > serverDate) {
+				logs[index] = clientLog;
+				updated++;
+			}
+		}
+	});
+
+	// Save to file
+	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+
+	logToFile("Logs synced from client", { added, updated });
+
+	res.json({ success: true, added, updated });
+});
+
+// Get server status (including email configuration)
+app.get("/api/status", isAuthenticated, (req, res) => {
+	res.json({
+		status: "running",
+		version: "1.0.0",
+		emailEnabled: !!(
+			emailConfig.enabled &&
+			emailConfig.transport &&
+			emailConfig.options
+		),
+		logs: logs.length,
+	});
+});
+
+// Send test email
+app.get("/api/test-email", isAuthenticated, (req, res) => {
+	// Check if email is configured
+	if (!emailConfig.enabled || !emailConfig.transport || !emailConfig.options) {
 		return res.status(400).json({
 			success: false,
-			message: "Email notifications are not configured or disabled",
+			message: "Email is not configured. Check server/email-config.js",
 		});
+	}
+
+	// Get current user
+	const user = users.find((user) => user.id === req.session.userId);
+
+	if (!user || !user.email) {
+		return res.status(400).json({
+			success: false,
+			message: "User email not found",
+		});
+	}
+
+	// Create test email options
+	const mailOptions = {
+		from: emailConfig.options.from,
+		to: user.email,
+		subject: "Test Email from Web Developer Bootcamp Journal",
+		html: `
+      <h1>Test Email</h1>
+      <p>This is a test email from your Web Developer Bootcamp Journal application.</p>
+      <p>If you're receiving this email, your email notifications are working correctly!</p>
+      <p>Time sent: ${new Date().toLocaleString()}</p>
+    `,
+	};
+
+	// Send test email
+	try {
+		const transporter = nodemailer.createTransport(emailConfig.transport);
+
+		transporter.sendMail(mailOptions, (error, info) => {
+			if (error) {
+				logToFile("Test email failed", {
+					error: error.message,
+					user: user.email,
+				});
+				return res.json({
+					success: false,
+					message: "Failed to send test email: " + error.message,
+				});
+			}
+
+			logToFile("Test email sent", { user: user.email, info });
+			res.json({
+				success: true,
+				message: "Test email sent to " + user.email,
+			});
+		});
+	} catch (err) {
+		logToFile("Error creating email transporter", { error: err.message });
+		res.status(500).json({
+			success: false,
+			message: "Error setting up email: " + err.message,
+		});
+	}
+});
+
+// Send email notification for new log
+function sendEmailNotification(log) {
+	if (!emailConfig.enabled || !emailConfig.transport || !emailConfig.options) {
+		return;
 	}
 
 	try {
-		// Create a transporter with debugging enabled
-		console.log(
-			"Test email - Creating transporter with host:",
-			emailConfig.host
-		);
-		const transporter = nodemailer.createTransport({
-			host: emailConfig.host,
-			port: emailConfig.port,
-			secure: emailConfig.secure,
-			auth: {
-				user: emailConfig.user,
-				pass: emailConfig.password,
-			},
-			debug: true,
-			logger: true,
-		});
+		const transporter = nodemailer.createTransport(emailConfig.transport);
 
-		// Verify connection configuration
-		await transporter.verify();
-		console.log("Test email - Transporter verification successful");
+		// Format the date
+		const logDate = new Date(log.timestamp);
+		const formattedDate = logDate.toLocaleString();
 
-		// Prepare site URL for the link in the email
-		const siteUrl = isProduction
-			? "https://aryan-dani.github.io/Daily_logger" // Your actual GitHub Pages URL
-			: `http://localhost:${PORT}`;
+		// Get category display name
+		let categoryName = log.category;
+		switch (log.category) {
+			case "html-css":
+				categoryName = "HTML & CSS";
+				break;
+			case "javascript":
+				categoryName = "JavaScript";
+				break;
+			case "node":
+				categoryName = "Node.js";
+				break;
+			case "express":
+				categoryName = "Express";
+				break;
+			case "mongodb":
+				categoryName = "MongoDB";
+				break;
+			case "project":
+				categoryName = "Project";
+				break;
+		}
 
-		// Send test email
-		console.log("Test email - Sending email now...");
-		const info = await transporter.sendMail({
-			from: emailConfig.from || emailConfig.user,
-			to: emailConfig.to,
-			subject: "Daily Logger - Test Email",
-			priority: "high",
+		// Create mail options
+		const mailOptions = {
+			from: emailConfig.options.from,
+			to: emailConfig.options.to,
+			subject: `New Learning Entry: ${log.title}`,
 			html: `
-        <h2>Daily Logger - Email Test</h2>
-        <p>This is a test email from your Daily Logger application.</p>
-        <p>If you're receiving this email, your email notifications are configured correctly!</p>
-        <p>New log entries will now trigger email notifications with their content.</p>
-        <hr>
-        <p>
-            <a href="${siteUrl}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
-                Open Daily Logger
-            </a>
-        </p>
-        <p><small>This is an automated test from your Daily Logger app.</small></p>
+        <h1>New Web Developer Bootcamp Journal Entry</h1>
+        <h2>${log.title}</h2>
+        <p><strong>Date:</strong> ${formattedDate}</p>
+        <p><strong>Category:</strong> ${categoryName}</p>
+        <p><strong>Understanding Level:</strong> ${log.importance}/5</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #4CAF50;">
+          <p>${log.content.replace(/\n/g, "<br>")}</p>
+        </div>
+        <p style="margin-top: 30px;">Keep up the great work with your web development journey!</p>
       `,
-		});
+		};
 
-		console.log("Test email sent successfully:", info.messageId);
-		console.log("Test email preview URL:", nodemailer.getTestMessageUrl(info));
-
-		res.json({ success: true, message: "Test email sent successfully!" });
-	} catch (error) {
-		console.error("Error sending test email:", error);
-		res.status(500).json({
-			success: false,
-			message: "Failed to send test email: " + error.message,
+		// Send email
+		transporter.sendMail(mailOptions, (error, info) => {
+			if (error) {
+				logToFile("Email notification failed", {
+					error: error.message,
+					logId: log.id,
+				});
+				console.error("Failed to send email notification:", error);
+			} else {
+				logToFile("Email notification sent", { logId: log.id, info });
+				console.log("Email notification sent:", info.response);
+			}
 		});
+	} catch (err) {
+		logToFile("Error creating email transporter", { error: err.message });
+		console.error("Error setting up email notification:", err);
 	}
-});
+}
 
-// Catch-all route to handle SPA routing
+// Catch-all route to serve the main app
 app.get("*", (req, res) => {
-	// Check if user is authenticated
-	if (req.session.authenticated) {
-		res.sendFile(path.join(__dirname, "..", "index.html"));
-	} else {
-		res.redirect("/login.html");
+	// Check if it's an API request
+	if (req.path.startsWith("/api/")) {
+		return res.status(404).json({ error: "API endpoint not found" });
 	}
+
+	// Determine which file to serve
+	let filePath;
+
+	// If the path is the root or index, serve index.html
+	if (req.path === "/" || req.path === "/index.html") {
+		filePath = path.join(__dirname, "..", "index.html");
+	}
+	// If the path is login, serve login.html
+	else if (req.path === "/login" || req.path === "/login.html") {
+		filePath = path.join(__dirname, "..", "login.html");
+	}
+	// For all other paths, try to find the file
+	else {
+		filePath = path.join(__dirname, "..", req.path);
+	}
+
+	// Check if the file exists and serve it
+	if (fs.existsSync(filePath)) {
+		return res.sendFile(filePath);
+	}
+
+	// If file doesn't exist, serve index.html as a fallback (for SPA behavior)
+	res.sendFile(path.join(__dirname, "..", "index.html"));
 });
 
 // Start the server
 app.listen(PORT, () => {
-	console.log(
-		`Server running on ${
-			isProduction ? "production" : "development"
-		} mode at http://localhost:${PORT}`
-	);
-	console.log(`Using ${useMemoryStorage ? "in-memory" : "file-based"} storage`);
-	console.log(
-		`Email notifications are ${
-			emailConfig && emailConfig.enabled ? "enabled" : "disabled"
-		}`
-	);
-
-	// Display login instructions for easier testing
-	console.log("\n----- AUTHENTICATION INSTRUCTIONS -----");
-	console.log("Username: srushti");
-	console.log("Password: paneer");
-	console.log("---------------------------------------\n");
+	console.log(`Server running on port ${PORT}`);
+	console.log(`View the app at http://localhost:${PORT}`);
 });

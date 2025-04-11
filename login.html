@@ -100,7 +100,7 @@
 				<i class="fas fa-book-reader"></i>
 			</div>
 			<h2 class="login-heading">Daily Logger</h2>
-			<form class="login-form" id="loginForm">
+			<form class="login-form" id="login-form">
 				<div class="input-group">
 					<label for="username">Username</label>
 					<input
@@ -119,10 +119,10 @@
 						required
 						autocomplete="current-password" />
 				</div>
-				<button type="submit" class="login-btn">
+				<button type="submit" class="login-btn" id="login-btn">
 					<i class="fas fa-sign-in-alt"></i> Login
 				</button>
-				<div class="error-message" id="errorMessage">
+				<div class="error-message" id="error-msg">
 					Invalid username or password
 				</div>
 				<div class="help-text">
@@ -135,96 +135,98 @@
 		<script src="js/config.js"></script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
-				console.log("Login page loaded");
+				const loginForm = document.getElementById("login-form");
+				const errorMsg = document.getElementById("error-msg");
 
-				// Get API URL from config with better fallback
+				// Get API URL from config
 				const API_BASE_URL =
 					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
 
-				// Add logging to help diagnose issues
-				console.log("Using API URL:", API_BASE_URL);
+				const BASE_PATH =
+					window.BASE_PATH !== undefined ? window.BASE_PATH : "";
 
-				// Check if user is already logged in
+				console.log("Login page loaded with API URL:", API_BASE_URL);
+				console.log("Base path:", BASE_PATH);
+
+				// Check if already logged in
 				fetch(`${API_BASE_URL}/api/user`, {
-					credentials: "include", // Important for cross-origin requests with cookies
+					credentials: "include",
 				})
 					.then((response) => {
-						console.log("Auth check response status:", response.status);
 						if (!response.ok) {
-							throw new Error("Not authenticated");
+							console.log("Not authenticated, ready for login");
+							return { authenticated: false };
 						}
 						return response.json();
 					})
 					.then((data) => {
-						console.log("Auth check data:", data);
 						if (data.authenticated) {
-							console.log("Already authenticated, redirecting to main page");
-							window.location.href = "/"; // Simply redirecting to root should work locally
+							console.log("Already authenticated, redirecting to index");
+							window.location.href = `${BASE_PATH}/index.html`;
 						}
 					})
 					.catch((error) => {
-						console.log("User not authenticated yet:", error.message);
+						console.log(
+							"Not authenticated or error checking auth status:",
+							error
+						);
 					});
 
-				// Handle login form submission
-				document
-					.getElementById("loginForm")
-					.addEventListener("submit", function (e) {
-						e.preventDefault();
+				loginForm.addEventListener("submit", function (e) {
+					e.preventDefault();
 
-						const username = document.getElementById("username").value.trim();
-						const password = document.getElementById("password").value;
-						const errorMessage = document.getElementById("errorMessage");
+					const username = document.getElementById("username").value;
+					const password = document.getElementById("password").value;
+					const loginBtn = document.getElementById("login-btn");
 
-						console.log("Attempting login with username:", username);
+					// Disable button and show loading state
+					loginBtn.disabled = true;
+					loginBtn.innerHTML =
+						'<i class="fas fa-spinner fa-spin"></i> Logging in...';
 
-						// Clear previous error
-						errorMessage.style.display = "none";
+					// Clear previous error
+					errorMsg.style.display = "none";
 
-						// Show loading state on button
-						const loginButton = this.querySelector("button");
-						const originalButtonText = loginButton.innerHTML;
-						loginButton.disabled = true;
-						loginButton.innerHTML =
-							'<i class="fas fa-circle-notch fa-spin"></i> Logging in...';
+					console.log("Attempting login with credentials:", username);
 
-						fetch(`${API_BASE_URL}/api/login`, {
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							body: JSON.stringify({ username, password }),
-							credentials: "include", // Important for session cookies
+					fetch(`${API_BASE_URL}/api/login`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ username, password }),
+						credentials: "include",
+					})
+						.then((response) => {
+							console.log("Login response status:", response.status);
+							if (!response.ok) {
+								// If response is not OK, it's an auth error
+								return response.json().then((data) => {
+									throw new Error(data.error || "Login failed");
+								});
+							}
+							return response.json();
 						})
-							.then((response) => {
-								console.log("Login response status:", response.status);
-								if (!response.ok) {
-									throw new Error(
-										"Login failed with status: " + response.status
-									);
-								}
-								return response.json();
-							})
-							.then((data) => {
-								console.log("Login response data:", data);
-								if (data.success) {
-									window.location.href = "/";
-								} else {
-									errorMessage.style.display = "block";
-									document.getElementById("password").value = "";
-								}
-							})
-							.catch((error) => {
-								console.error("Login error:", error);
-								errorMessage.style.display = "block";
-								document.getElementById("password").value = "";
-							})
-							.finally(() => {
-								// Restore button state
-								loginButton.disabled = false;
-								loginButton.innerHTML = originalButtonText;
-							});
-					});
+						.then((data) => {
+							if (data.success) {
+								console.log("Login successful, redirecting to index");
+								window.location.href = `${BASE_PATH}/index.html`;
+							} else {
+								// Show error message
+								throw new Error(data.error || "Invalid username or password");
+							}
+						})
+						.catch((error) => {
+							console.error("Login error:", error.message);
+							errorMsg.textContent =
+								error.message || "Invalid username or password";
+							errorMsg.style.display = "block";
+
+							// Reset button
+							loginBtn.disabled = false;
+							loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+						});
+				});
 			});
 		</script>
 	</body>
