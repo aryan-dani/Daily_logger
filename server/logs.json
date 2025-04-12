@@ -936,5 +936,27 @@
       },
       "messageId": "<b224df4c-26c4-8c93-70ca-28900c0cbf5a@gmail.com>"
     }
+  },
+  {
+    "timestamp": "2025-04-12T06:48:57.281Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T06:48:57.285Z",
+    "message": "Loaded existing logs database",
+    "count": 4
+  },
+  {
+    "timestamp": "2025-04-12T06:49:03.538Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-12T06:49:09.828Z",
+    "message": "Log created",
+    "logId": "m9duv2r2lqf16",
+    "title": "h"
   }
 ]
