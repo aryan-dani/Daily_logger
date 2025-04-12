@@ -304,7 +304,6 @@ app.post("/api/logs", isAuthenticated, async (req, res) => {
   if (!title || !category || !content || importance === undefined) {
     return res.status(400).json({ error: "Missing required log fields" });
   }
-
   try {
     const newLog = new Log({
       userId: req.session.userId,
@@ -320,6 +319,85 @@ app.post("/api/logs", isAuthenticated, async (req, res) => {
       userId: req.session.userId,
       logId: savedLog._id,
     });
+
+    // --- Add Email Sending Logic ---
+    const isValidConfig =
+      emailConfig.enabled &&
+      emailConfig.transport.host &&
+      emailConfig.transport.auth.user &&
+      emailConfig.transport.auth.pass &&
+      emailConfig.options.from &&
+      emailConfig.options.to;
+
+    if (isValidConfig) {
+      logToFile("Attempting to send new log notification email", {
+        userId: req.session.userId,
+        logId: savedLog._id,
+      });
+      try {
+        const transporter = nodemailer.createTransport(emailConfig.transport);
+        // Optional: Verify connection - might slow down response, consider doing it less often
+        // await transporter.verify();
+
+        const mailOptions = {
+          from: emailConfig.options.from,
+          to: emailConfig.options.to, // Send to the configured recipient
+          subject: `New Daily Log Entry: ${savedLog.title}`,
+          text: `A new log entry has been added:\n\nTitle: ${
+            savedLog.title
+          }\nCategory: ${savedLog.category}\nImportance: ${
+            savedLog.importance
+          }\n\nContent:\n${
+            savedLog.content
+          }\n\nTimestamp: ${savedLog.timestamp.toLocaleString()}`,
+          html: `
+            <h2>New Daily Log Entry Added</h2>
+            <p><strong>Title:</strong> ${savedLog.title}</p>
+            <p><strong>Category:</strong> ${savedLog.category}</p>
+            <p><strong>Importance:</strong> ${savedLog.importance}/5</p>
+            <p><strong>Timestamp:</strong> ${savedLog.timestamp.toLocaleString()}</p>
+            <hr>
+            <p><strong>Content:</strong></p>
+            <pre>${savedLog.content}</pre>
+          `,
+        };
+
+        // Send mail (fire and forget - don't wait for it to complete to send response)
+        transporter
+          .sendMail(mailOptions)
+          .then((info) => {
+            logToFile("New log notification email sent", {
+              userId: req.session.userId,
+              logId: savedLog._id,
+              messageId: info.messageId,
+            });
+          })
+          .catch((error) => {
+            logToFile("Error sending new log notification email", {
+              userId: req.session.userId,
+              logId: savedLog._id,
+              error: error.message,
+            });
+            console.error("Error sending new log notification email:", error);
+            // Don't block the user response if email fails
+          });
+      } catch (emailError) {
+        // Catch errors during transporter creation/verification
+        logToFile("Error setting up email transporter for new log", {
+          userId: req.session.userId,
+          logId: savedLog._id,
+          error: emailError.message,
+        });
+        console.error("Error setting up email transporter:", emailError);
+      }
+    } else {
+      logToFile(
+        "Skipping new log email notification: Email disabled or misconfigured",
+        { userId: req.session.userId, logId: savedLog._id }
+      );
+    }
+    // --- End Email Sending Logic ---
+
     res.status(201).json(savedLog); // Return the saved log with its ID and timestamp
   } catch (err) {
     logToFile("Error creating log", {
@@ -369,11 +447,9 @@ app.put("/api/logs/:id", isAuthenticated, async (req, res) => {
         userId: req.session.userId,
         logId,
       });
-      return res
-        .status(404)
-        .json({
-          error: "Log entry not found or you don't have permission to edit it.",
-        });
+      return res.status(404).json({
+        error: "Log entry not found or you don't have permission to edit it.",
+      });
     }
 
     logToFile("Log entry updated", { userId: req.session.userId, logId });
@@ -410,12 +486,9 @@ app.delete("/api/logs/:id", isAuthenticated, async (req, res) => {
         userId: req.session.userId,
         logId,
       });
-      return res
-        .status(404)
-        .json({
-          error:
-            "Log entry not found or you don't have permission to delete it.",
-        });
+      return res.status(404).json({
+        error: "Log entry not found or you don't have permission to delete it.",
+      });
     }
 
     logToFile("Log entry deleted", { userId: req.session.userId, logId });
