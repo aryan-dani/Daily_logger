@@ -433,8 +433,11 @@ function createLogItemHTML(log) {
     preview = preview.substring(0, 147) + "...";
   }
 
+  // Use MongoDB _id if available, otherwise fallback to client-side id
+  const logId = log._id || log.id;
+
   return `
-        <div class="log-item ${log.category}" data-id="${log.id}">
+        <div class="log-item ${log.category}" data-id="${logId}">
             <div class="log-header">
                 <h3 class="log-title">${log.title}</h3>
                 <span class="log-date">${formatDate(log.timestamp)}</span>
@@ -802,26 +805,42 @@ async function deleteLog(logId) {
   }
 
   try {
-    const response = await fetch(`${window.API_BASE_URL}/api/logs/${logId}`, {
+    console.log(`Attempting to delete log with ID: ${logId}`);
+
+    const deleteUrl = `${window.API_BASE_URL}/api/logs/${logId}`;
+    console.log(`DELETE request to: ${deleteUrl}`);
+
+    const response = await fetch(deleteUrl, {
       method: "DELETE",
-      credentials: "include",
+      credentials: "include", // Important for authenticated requests
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
 
+    console.log(`Delete response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`Failed to delete entry: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `Failed to delete entry: ${response.status}`
+      );
     }
 
-    // Remove from localStorage
+    // Also remove from localStorage for offline/fallback support
     let logs = JSON.parse(localStorage.getItem("logs") || "[]");
     logs = logs.filter((log) => log.id !== logId);
     localStorage.setItem("logs", JSON.stringify(logs));
 
     showToast("Entry deleted successfully!", "success");
-    await displayLogs(); // Refresh the list
+
+    // Refresh the logs display to reflect changes
+    await displayLogs();
   } catch (error) {
     console.error("Error deleting entry:", error);
     showToast(`Error deleting entry: ${error.message}`, "error");
-    // Optionally, refresh logs even on error to ensure consistency with server state if possible
+
+    // Still refresh logs to ensure consistency with server
     await displayLogs();
   }
 }
