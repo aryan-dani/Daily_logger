@@ -713,319 +713,86 @@ footer {
   font-weight: 300;
 }
 
-/* Toast Notifications */
-.toast {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: var(--dark-color);
-  color: white;
-  padding: 14px 25px; /* Increased padding */
-  border-radius: 10px; /* Slightly larger radius */
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 10px; /* Ensure gap */
-  font-weight: 500;
-  font-size: 1.05rem; /* Slightly larger font */
-  will-change: opacity, transform;
-  max-width: 350px; /* Limit width */
-}
-
-.toast i {
-  font-size: 1.2rem; /* Ensure icon size */
-}
-
-.toast.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.toast.success {
-  background-color: var(--secondary-color); /* Use secondary for success */
-}
-
-.toast.error {
-  background-color: var(--accent-color); /* Use accent for error */
-}
-
-/* Notification Styles (Keep distinct from Toast for now) */
+/* Notification Styles */
 .notification {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 15px 20px;
-  background-color: #28a745;
-  color: white;
-  border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1050;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  transform: translateY(100px);
-  opacity: 0;
-}
-
-.notification.show {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.notification.error {
-  background-color: #dc3545;
-}
-
-.notification.warning {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-/* New notification system */
-.notification {
-  position: fixed;
-  top: -100px;
-  right: 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
-  display: flex;
-  align-items: center;
-  padding: 15px 20px;
-  gap: 15px;
-  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-  border-left: 5px solid var(--primary-color);
-  max-width: 350px;
-  opacity: 0;
-  will-change: opacity, transform;
-}
-
-.notification.show {
   top: 20px;
-  opacity: 1;
+  right: 20px;
+  background: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  max-width: 400px;
+  transform: translateX(420px);
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
+  border-left: 5px solid var(--secondary-color);
+  overflow: hidden;
+}
+
+.notification.show {
+  transform: translateX(0);
+}
+
+.notification::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(56, 178, 172, 0.2),
+    rgba(43, 108, 176, 0.2)
+  );
+  z-index: -1;
 }
 
 .notification-icon {
+  background: var(--secondary-color);
   width: 36px;
   height: 36px;
-  background-color: #f0f2ff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  margin-right: 15px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(56, 178, 172, 0.4);
+}
+
+.notification-icon i {
   font-size: 1.1rem;
-  color: var(--primary-color);
 }
 
 .notification-content {
-  flex-grow: 1;
+  flex: 1;
 }
 
 .notification-content p {
   margin: 0;
   color: var(--dark-color);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-/* Settings Panel Styles */
-.settings-icon {
-  /* Style the cog icon container */
-  position: absolute;
-  top: 20px; /* Adjust as needed */
-  right: 20px;
-  font-size: 1.8rem;
-  color: white;
-  cursor: pointer;
-  z-index: 2; /* Ensure it's above header pattern */
-  transition: transform 0.3s ease;
+.notification.success {
+  border-left-color: #2ecc71;
 }
 
-.settings-icon:hover {
-  transform: rotate(45deg);
+.notification.success .notification-icon {
+  background: #2ecc71;
 }
 
-.settings-panel {
-  position: fixed;
-  top: 0;
-  right: -400px; /* Start off-screen */
-  width: 350px; /* Ensure width */
-  max-width: 90vw; /* Max width on small screens */
-  height: 100%;
-  background-color: #fff;
-  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-  z-index: 1001; /* Ensure it's above other content */
-  transition: right 0.4s ease-in-out;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid #eee;
+.notification.error {
+  border-left-color: #e74c3c;
 }
 
-.settings-panel.show {
-  right: 0; /* Slide in */
-}
-
-.settings-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.settings-header h2 {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.close-settings {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.close-settings:hover {
-  color: var(--accent-color);
-  transform: rotate(90deg);
-}
-
-.settings-content {
-  padding: 20px;
-  overflow-y: auto; /* Allow scrolling if content overflows */
-  flex-grow: 1;
-}
-
-.settings-section {
-  margin-bottom: 25px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #eee;
-}
-.settings-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.settings-section h3 {
-  margin-bottom: 15px;
-  color: var(--dark-color);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-}
-
-.settings-section h3 i {
-  margin-right: 10px;
-  color: var(--primary-color);
-  width: 20px; /* Ensure consistent icon alignment */
-  text-align: center;
-}
-
-.settings-description {
-  color: var(--grey-color);
-  margin-bottom: 15px;
-}
-
-.settings-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #f9f9f9;
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-}
-
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-  background-color: #ccc; /* Default grey */
-}
-
-.settings-status.enabled .status-dot {
-  background-color: #28a745; /* Green for enabled */
-}
-.settings-status.enabled .status-text {
-  color: #28a745;
-}
-
-.settings-status.disabled .status-dot {
-  background-color: #dc3545; /* Red for disabled */
-}
-.settings-status.disabled .status-text {
-  color: #dc3545;
-}
-
-.settings-status.error .status-dot {
-  background-color: #ffc107; /* Yellow for error */
-}
-.settings-status.error .status-text {
-  color: #ffc107;
-}
-
-.status-text {
-  font-size: 0.9em;
-  color: #666;
-}
-
-.settings-info {
-  font-size: 0.85em;
-  color: #6c757d;
-  background-color: #f0f4f8;
-  padding: 10px;
-  border-radius: 4px;
-  border-left: 3px solid var(--primary-color);
-}
-
-.settings-info code {
-  background-color: #e9ecef;
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: monospace;
-}
-
-/* Add styles for the danger button (logout) */
-.btn.danger {
-  background-color: var(--accent-color);
-  color: white;
-}
-
-.btn.danger:hover {
-  background-color: #c82333; /* Darker red on hover */
-}
-
-/* Loading Indicator */
-.loading-spinner {
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  border-top-color: #007bff;
-  animation: spin 1s ease-in-out infinite;
-  margin: 0 auto;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
+.notification.error .notification-icon {
+  background: #e74c3c;
 }

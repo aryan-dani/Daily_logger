@@ -1,0 +1,262 @@
+/* Settings Icon - Clean & Simple */
+.settings-icon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.settings-icon:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.settings-icon i {
+  font-size: 16px;
+}
+
+/* Settings Panel - Modern & Clean */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 300px;
+  height: 100%;
+  background: #f8f9fa;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid #eaeaea;
+}
+
+.settings-panel.show {
+  right: 0;
+}
+
+.settings-header {
+  padding: 15px;
+  background: #343a40;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settings-header h2 i {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.close-settings {
+  font-size: 18px;
+  cursor: pointer;
+  height: 24px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.close-settings:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.settings-content {
+  padding: 15px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.settings-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.settings-section h3 i {
+  margin-right: 6px;
+  color: #495057;
+  font-size: 12px;
+  width: 18px;
+  text-align: center;
+}
+
+.settings-description {
+  color: #6c757d;
+  margin-bottom: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.settings-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  border: 1px solid #dee2e6;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background-color: #adb5bd;
+}
+
+/* Status colors */
+.settings-status.enabled .status-dot {
+  background-color: #28a745;
+}
+
+.settings-status.enabled .status-text {
+  color: #28a745;
+}
+
+.settings-status.disabled .status-dot {
+  background-color: #dc3545;
+}
+
+.settings-status.disabled .status-text {
+  color: #dc3545;
+}
+
+.settings-status.error .status-dot {
+  background-color: #fd7e14;
+}
+
+.settings-status.error .status-text {
+  color: #fd7e14;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.settings-info {
+  background-color: #f8f9fa;
+  border-left: 3px solid #6c757d;
+  padding: 8px 10px;
+  border-radius: 2px;
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 12px;
+}
+
+.settings-info p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.settings-info i {
+  color: #6c757d;
+  margin-right: 5px;
+  font-size: 12px;
+}
+
+.settings-info code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* Button Styles - Simple & Modern */
+.btn.secondary {
+  background-color: #6c757d;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn.secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn.secondary i {
+  font-size: 12px;
+}
+
+.btn.danger {
+  background-color: #dc3545;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn.danger:hover {
+  background-color: #c82333;
+}
+
+.btn.danger i {
+  font-size: 12px;
+}
