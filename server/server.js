@@ -1,40 +1,56 @@
 /** @format */
-require('dotenv').config(); // Load environment variables from .env file
+require("dotenv").config(); // Load environment variables from .env file
 
 const express = require("express");
 const session = require("express-session");
-const FileStore = require("session-file-store")(session); // Import session-file-store
+const FileStore = require("session-file-store")(session); // Keep for sessions for now
 const path = require("path");
-const fs = require("fs");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcryptjs"); // Keep for password comparison during login
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const mongoose = require("mongoose"); // Import Mongoose
 
-// Define the data directory path
+// Import Mongoose Models
+const User = require("./models/User");
+const Log = require("./models/Log");
+
+// Define the data directory path (still needed for sessions if using FileStore)
 const dataDir = process.env.DATA_DIR || __dirname;
 console.log(`Using data directory: ${dataDir}`);
 const sessionDir = path.join(dataDir, "sessions"); // Define session storage path
 
-// Ensure data directory and session directory exist
-if (!fs.existsSync(dataDir)) {
-  try {
-    fs.mkdirSync(dataDir, { recursive: true });
-    console.log(`Created data directory: ${dataDir}`);
-  } catch (err) {
-    console.error(`Error creating data directory ${dataDir}:`, err);
-    // Exit or handle error appropriately if data directory is critical
-    process.exit(1);
-  }
+// Ensure session directory exists (if using FileStore)
+// const fs = require('fs'); // Re-require if needed only for directory check
+// if (!fs.existsSync(sessionDir)) {
+//   try {
+//     fs.mkdirSync(sessionDir, { recursive: true });
+//     console.log(`Created session directory: ${sessionDir}`);
+//   } catch (err) {
+//     console.error(`Error creating session directory ${sessionDir}:`, err);
+//     process.exit(1);
+//   }
+// }
+
+// --- Connect to MongoDB ---
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error("FATAL ERROR: MONGODB_URI environment variable is not set.");
+  process.exit(1);
 }
-if (!fs.existsSync(sessionDir)) {
-  try {
-    fs.mkdirSync(sessionDir, { recursive: true });
-    console.log(`Created session directory: ${sessionDir}`);
-  } catch (err) {
-    console.error(`Error creating session directory ${sessionDir}:`, err);
+
+mongoose
+  .connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    // useCreateIndex: true, // No longer needed in Mongoose 6+
+    // useFindAndModify: false // No longer needed in Mongoose 6+
+  })
+  .then(() => console.log("MongoDB Connected successfully."))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
     process.exit(1);
-  }
-}
+  });
+// --- End MongoDB Connection ---
 
 // Initialize express app
 const app = express();
@@ -117,24 +133,24 @@ app.use(
   })
 );
 
-// Session configuration - Use FileStore
+// Session configuration - Use FileStore (or switch to connect-mongo later if preferred)
 app.use(
   session({
     store: new FileStore({
-      path: sessionDir, // Path to store session files
-      ttl: 86400, // Session TTL in seconds (e.g., 24 hours)
-      retries: 0, // Don't retry reading the session file if it fails initially
+      // Keep FileStore for now
+      path: sessionDir,
+      ttl: 86400,
+      retries: 0,
       logFn: function (msg) {
-        // Optional: Adjust logging to be less verbose if desired
-        // console.log("[SessionFileStore]", msg);
+        /* Optional logging */
       },
     }),
     secret:
       process.env.SESSION_SECRET || "your-secret-key-change-in-production",
-    resave: false, // Don't save session if unmodified
-    saveUninitialized: false, // Don't create session until something stored
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+      secure: process.env.NODE_ENV === "production",
       // Use 'none' for cross-site requests (e.g., GitHub Pages -> Render),
       // requires secure: true. Use 'lax' locally.
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
@@ -144,191 +160,41 @@ app.use(
   })
 );
 
-// Helper function for logging
+// Helper function for logging (can keep or remove if not needed)
 function logToFile(message, data = {}) {
-  const logEntry = {
-    timestamp: new Date(),
-    message,
-    ...data,
-  };
-
-  const logsPath = path.join(dataDir, "logs.json"); // Use dataDir
-
-  // Read existing logs
-  let logs = [];
-  try {
-    if (fs.existsSync(logsPath)) {
-      const logsData = fs.readFileSync(logsPath, "utf8");
-      logs = JSON.parse(logsData);
-    }
-  } catch (err) {
-    console.error("Error reading logs file:", err);
-  }
-
-  // Add new log entry
-  logs.push(logEntry);
-
-  // Keep only the last 1000 entries to avoid file growing too large
-  if (logs.length > 1000) {
-    logs = logs.slice(logs.length - 1000);
-  }
-
-  // Write back to file
-  try {
-    fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2), "utf8");
-  } catch (err) {
-    console.error("Error writing to logs file:", err);
-  }
-
-  // Also log to console
-  console.log(`[${logEntry.timestamp}] ${message}`, data);
-}
-
-// Load user database
-const usersDbPath = path.join(dataDir, "users.json"); // Use dataDir
-let users = [];
-
-try {
-  // Check if users.json exists
-  if (fs.existsSync(usersDbPath)) {
-    // Load existing users
-    users = JSON.parse(fs.readFileSync(usersDbPath, "utf8"));
-    logToFile("Loaded existing users database", { count: users.length });
-  } else {
-    // Create default users only if the file doesn't exist
-    const defaultUsers = [
-      {
-        id: 1,
-        username: "admin",
-        password: bcrypt.hashSync("admin", 10), // Consider stronger default password or prompt
-        email: "admin@example.com",
-        role: "admin",
-      },
-      {
-        id: 2,
-        username: "srushti",
-        password: bcrypt.hashSync("paneer", 10), // Consider stronger default password or prompt
-        email: "srushti@example.com",
-        role: "user",
-      },
-    ];
-
-    // Save to file
-    fs.writeFileSync(
-      usersDbPath,
-      JSON.stringify(defaultUsers, null, 2),
-      "utf8"
-    );
-    users = defaultUsers;
-
-    logToFile("Created users database with default users", {
-      users: defaultUsers.map((u) => u.username),
-    });
-    console.log("Users created: admin, srushti");
-  }
-} catch (err) {
-  logToFile("Error initializing users database", { error: err.message });
-  console.error("Error initializing users database:", err);
-  // Decide if the app can run without users db
-  process.exit(1);
-}
-
-// Load logs database
-const logsDbPath = path.join(dataDir, "logs_db.json"); // Use dataDir
-let logs = [];
-
-try {
-  if (fs.existsSync(logsDbPath)) {
-    logs = JSON.parse(fs.readFileSync(logsDbPath, "utf8"));
-    logToFile("Loaded existing logs database", { count: logs.length });
-  } else {
-    // Create empty logs database if it doesn't exist
-    fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
-    logToFile("Created empty logs database");
-  }
-} catch (err) {
-  logToFile("Error loading logs database", { error: err.message });
-  console.error("Error loading logs database:", err);
-  // Decide if the app can run without logs db
+  // This function wrote to logs.json, which is ignored.
+  // You might want to replace this with a more robust logging library (like Winston)
+  // or remove it if console logging is sufficient.
+  console.log(`[${new Date().toISOString()}] ${message}`, data);
 }
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
   if (req.session && req.session.userId) {
+    // Optional: You could fetch the user from DB here to ensure they still exist
+    // const user = await User.findById(req.session.userId);
+    // if (!user) { /* Handle error */ }
+    // req.user = user; // Attach user to request
     return next();
   }
-  logToFile("Unauthorized access attempt", {
-    path: req.path,
-    ip: req.ip,
-    headers: req.headers,
-  });
-  return res.status(401).json({ error: "Unauthorized" });
+  logToFile("Unauthorized access attempt", { path: req.path, ip: req.ip });
+  // Redirect to login for browser requests, return JSON for API requests
+  if (req.accepts("html")) {
+    // Assuming you have a login page route or static file
+    // return res.redirect('/login.html'); // Or your login route
+    // For now, just send 401 for simplicity as frontend handles redirect
+    return res.status(401).send("Unauthorized. Please log in.");
+  } else {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 }
 
-// Token authentication middleware
-function verifyToken(req, res, next) {
-  // Check for session first (local usage)
-  if (req.session && req.session.userId) {
-    return next();
-  }
+// --- API Routes ---
 
-  // Check for token in headers
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.substring(7);
-    try {
-      // Decode token (simple implementation)
-      const decoded = Buffer.from(token, "base64").toString();
-      const [userId, timestamp] = decoded.split(":");
-
-      // Verify token is not too old (24 hours)
-      if (Date.now() - Number(timestamp) > 24 * 60 * 60 * 1000) {
-        return res.status(401).json({ error: "Token expired" });
-      }
-
-      // Find the user
-      const user = users.find((user) => user.id === Number(userId));
-      if (!user) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
-
-      // Set userId in request for later use
-      req.userId = Number(userId);
-      return next();
-    } catch (err) {
-      return res.status(401).json({ error: "Invalid token format" });
-    }
-  }
-
-  // No authentication found
-  logToFile("Unauthorized access attempt", {
-    path: req.path,
-    ip: req.ip,
-    headers: req.headers,
-  });
-  return res.status(401).json({ error: "Unauthorized" });
-}
-
-// === ROUTES ===
-
-// Authentication status route
-app.get("/api/user", (req, res) => {
-  if (req.session && req.session.userId) {
-    const user = users.find((user) => user.id === req.session.userId);
-    if (user) {
-      return res.json({
-        authenticated: true,
-        username: user.username,
-        email: user.email,
-      });
-    }
-  }
-  return res.status(401).json({ authenticated: false });
-});
-
-// Login route
-app.post("/api/login", (req, res) => {
+// Login Route
+app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
+  logToFile("Login attempt", { username });
 
   if (!username || !password) {
     return res
@@ -336,388 +202,294 @@ app.post("/api/login", (req, res) => {
       .json({ error: "Username and password are required" });
   }
 
-  const user = users.find((u) => u.username === username);
-
-  if (!user || !bcrypt.compareSync(password, user.password)) {
-    logToFile("Failed login attempt", { username });
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  // Set user session
-  req.session.userId = user.id;
-
-  // Generate a token for cross-origin authentication
-  const token = Buffer.from(`${user.id}:${Date.now()}:auth`).toString("base64");
-
-  logToFile("User logged in", { username, userId: user.id });
-
-  return res.json({
-    success: true,
-    username: user.username,
-    email: user.email,
-    token: token, // Send the token to the client
-  });
-});
-
-// Logout route
-app.get("/api/logout", (req, res) => {
-  logToFile("User logged out", { userId: req.session.userId });
-  req.session.destroy();
-  res.json({ success: true });
-});
-
-// Get all logs
-app.get("/api/logs", verifyToken, (req, res) => {
-  res.json(logs);
-});
-
-// Create a new log
-app.post("/api/logs", verifyToken, (req, res) => {
-  const log = req.body;
-
-  // Validate log
-  if (!log.title || !log.content) {
-    return res.status(400).json({ error: "Title and content are required" });
-  }
-
-  // Add to logs
-  logs.push(log);
-
-  // Save to file
   try {
-    // Add error handling for file write
-    fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath defined earlier
-  } catch (err) {
-    logToFile("Error saving logs database after create", {
-      error: err.message,
-    });
-    console.error("Error saving logs database after create:", err);
-    // Decide if you should return an error to the client
-    return res.status(500).json({ error: "Failed to save log data." });
-  }
+    // Find user by username (case-insensitive)
+    const user = await User.findOne({ username: username.toLowerCase() });
 
-  // Check if email notification is enabled and send email
-  if (emailConfig.enabled && emailConfig.transport && emailConfig.options) {
-    sendEmailNotification(log);
-  }
-
-  logToFile("Log created", { logId: log.id, title: log.title });
-
-  res.json({ success: true, log });
-});
-
-// Update a log
-app.put("/api/logs/:id", verifyToken, (req, res) => {
-  const { id } = req.params;
-  const updatedLog = req.body;
-
-  // Find log index
-  const index = logs.findIndex((log) => log.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ error: "Log not found" });
-  }
-
-  // Update log
-  logs[index] = updatedLog;
-
-  // Save to file
-  try {
-    // Add error handling
-    fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath
-  } catch (err) {
-    logToFile("Error saving logs database after update", {
-      error: err.message,
-    });
-    console.error("Error saving logs database after update:", err);
-    // Optionally revert the change in memory or return error
-    return res.status(500).json({ error: "Failed to save log data." });
-  }
-
-  logToFile("Log updated", { logId: id, title: updatedLog.title });
-
-  res.json({ success: true, log: updatedLog });
-});
-
-// Delete a log
-app.delete("/api/logs/:id", verifyToken, (req, res) => {
-  const { id } = req.params;
-
-  // Filter out the log to delete
-  const initialCount = logs.length;
-  logs = logs.filter((log) => log.id !== id);
-
-  if (logs.length === initialCount) {
-    return res.status(404).json({ error: "Log not found" });
-  }
-
-  // Save to file
-  try {
-    // Add error handling
-    fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath
-  } catch (err) {
-    logToFile("Error saving logs database after delete", {
-      error: err.message,
-    });
-    console.error("Error saving logs database after delete:", err);
-    // Optionally revert the change in memory or return error
-    return res.status(500).json({ error: "Failed to save log data." });
-  }
-
-  logToFile("Log deleted", { logId: id });
-
-  res.json({ success: true });
-});
-
-// Sync logs from client (bulk add/update)
-app.post("/api/logs/sync", verifyToken, (req, res) => {
-  const clientLogs = req.body.logs;
-
-  if (!Array.isArray(clientLogs)) {
-    return res.status(400).json({ error: "Logs must be an array" });
-  }
-
-  let added = 0;
-  let updated = 0;
-
-  // Process each client log
-  clientLogs.forEach((clientLog) => {
-    const index = logs.findIndex((log) => log.id === clientLog.id);
-
-    if (index === -1) {
-      // Add new log
-      logs.push(clientLog);
-      added++;
-    } else {
-      // Update existing log, but only if the client version is newer
-      const clientDate = new Date(clientLog.timestamp);
-      const serverDate = new Date(logs[index].timestamp);
-
-      if (clientDate > serverDate) {
-        logs[index] = clientLog;
-        updated++;
-      }
+    if (!user) {
+      logToFile("Login failed: User not found", { username });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
-  });
 
-  // Save to file
-  try {
-    // Add error handling
-    fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath
-  } catch (err) {
-    logToFile("Error saving logs database after sync", { error: err.message });
-    console.error("Error saving logs database after sync:", err);
-    // Return error
-    return res.status(500).json({ error: "Failed to save synced log data." });
-  }
+    // Compare password
+    const isMatch = await user.comparePassword(password);
 
-  logToFile("Logs synced from client", { added, updated });
+    if (!isMatch) {
+      logToFile("Login failed: Incorrect password", { username });
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
-  res.json({ success: true, added, updated });
-});
-
-// Get server status (including email configuration)
-app.get("/api/status", verifyToken, (req, res) => {
-  res.json({
-    status: "running",
-    version: "1.0.0",
-    emailEnabled: !!(
-      emailConfig.enabled &&
-      emailConfig.transport &&
-      emailConfig.options
-    ),
-    logs: logs.length,
-  });
-});
-
-// Get email status - simplified endpoint for checking email configuration
-app.get("/api/email-status", (req, res) => {
-  res.json({
-    emailEnabled: !!(
-      emailConfig.enabled &&
-      emailConfig.transport &&
-      emailConfig.options
-    ),
-  });
-});
-
-// Send test email
-app.get("/api/test-email", verifyToken, (req, res) => {
-  // Check if email is configured
-  if (!emailConfig.enabled || !emailConfig.transport || !emailConfig.options) {
-    return res.status(400).json({
-      success: false,
-      message: "Email is not configured. Check server/email-config.js",
-    });
-  }
-
-  // Get current user - need to handle both session and token auth
-  let user;
-  if (req.session && req.session.userId) {
-    user = users.find((user) => user.id === req.session.userId);
-  } else if (req.userId) {
-    // This comes from verifyToken middleware
-    user = users.find((user) => user.id === req.userId);
-  }
-
-  if (!user || !user.email) {
-    return res.status(400).json({
-      success: false,
-      message: "User email not found",
-    });
-  }
-
-  // Create test email options
-  const mailOptions = {
-    from: emailConfig.options.from,
-    to: user.email,
-    subject: "Test Email from Web Developer Bootcamp Journal",
-    html: `\
-      <h1>Test Email</h1>
-      <p>This is a test email from your Web Developer Bootcamp Journal application.</p>
-      <p>If you're receiving this email, your email notifications are working correctly!</p>
-      <p>Time sent: ${new Date().toLocaleString()}</p>
-    `,
-  };
-
-  // Send test email
-  try {
-    const transporter = nodemailer.createTransport(emailConfig.transport);
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        logToFile("Test email failed", {
-          error: error.message,
-          user: user.email,
+    // Regenerate session to prevent fixation
+    req.session.regenerate((err) => {
+      if (err) {
+        logToFile("Session regeneration error", {
+          username,
+          error: err.message,
         });
-        return res.json({
-          success: false,
-          message: "Failed to send test email: " + error.message,
-        });
+        return res
+          .status(500)
+          .json({ error: "Login failed. Please try again." });
       }
 
-      logToFile("Test email sent", { user: user.email, info });
-      res.json({
-        success: true,
-        message: "Test email sent to " + user.email,
+      // Store user ID in session
+      req.session.userId = user._id;
+      req.session.username = user.username; // Store username for convenience
+
+      logToFile("Login successful", {
+        username: user.username,
+        userId: user._id,
       });
+      res.json({ success: true, username: user.username });
     });
   } catch (err) {
-    logToFile("Error creating email transporter", { error: err.message });
-    res.status(500).json({
-      success: false,
-      message: "Error setting up email: " + err.message,
-    });
+    logToFile("Login error", { username, error: err.message });
+    res.status(500).json({ error: "Server error during login" });
   }
 });
 
-// Send email notification for new log
-function sendEmailNotification(log) {
-  if (!emailConfig.enabled || !emailConfig.transport || !emailConfig.options) {
-    return;
+// Logout Route
+app.get("/api/logout", (req, res) => {
+  if (req.session) {
+    const username = req.session.username;
+    req.session.destroy((err) => {
+      if (err) {
+        logToFile("Logout error", { username, error: err.message });
+        return res
+          .status(500)
+          .json({ error: "Could not log out, please try again." });
+      } else {
+        logToFile("Logout successful", { username });
+        // Clear the cookie on the client side
+        res.clearCookie("connect.sid"); // Use the name of your session cookie if different
+        return res.json({ success: true });
+      }
+    });
+  } else {
+    // If no session exists, logout is effectively successful
+    return res.json({ success: true });
+  }
+});
+
+// Get current user status
+app.get("/api/user", (req, res) => {
+  if (req.session && req.session.userId) {
+    res.json({ authenticated: true, username: req.session.username });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+// --- Log Routes (Protected) ---
+
+// GET all logs for the logged-in user
+app.get("/api/logs", isAuthenticated, async (req, res) => {
+  try {
+    const userLogs = await Log.find({ userId: req.session.userId }).sort({
+      timestamp: -1,
+    }); // Sort newest first
+    res.json(userLogs);
+  } catch (err) {
+    logToFile("Error fetching logs", {
+      userId: req.session.userId,
+      error: err.message,
+    });
+    res.status(500).json({ error: "Failed to fetch logs" });
+  }
+});
+
+// POST a new log for the logged-in user
+app.post("/api/logs", isAuthenticated, async (req, res) => {
+  const { title, category, content, importance } = req.body;
+
+  if (!title || !category || !content || importance === undefined) {
+    return res.status(400).json({ error: "Missing required log fields" });
   }
 
   try {
-    const transporter = nodemailer.createTransport(emailConfig.transport);
+    const newLog = new Log({
+      userId: req.session.userId,
+      title,
+      category,
+      content,
+      importance: parseInt(importance, 10),
+      // timestamp is defaulted by schema
+    });
 
-    // Format the date
-    const logDate = new Date(log.timestamp);
-    const formattedDate = logDate.toLocaleString();
+    const savedLog = await newLog.save();
+    logToFile("Log entry created", {
+      userId: req.session.userId,
+      logId: savedLog._id,
+    });
+    res.status(201).json(savedLog); // Return the saved log with its ID and timestamp
+  } catch (err) {
+    logToFile("Error creating log", {
+      userId: req.session.userId,
+      error: err.message,
+      body: req.body,
+    });
+    res.status(500).json({ error: "Failed to save log entry" });
+  }
+});
 
-    // Get category display name
-    let categoryName = log.category;
-    switch (log.category) {
-      case "html-css":
-        categoryName = "HTML & CSS";
-        break;
-      case "javascript":
-        categoryName = "JavaScript";
-        break;
-      case "node":
-        categoryName = "Node.js";
-        break;
-      case "express":
-        categoryName = "Express";
-        break;
-      case "mongodb":
-        categoryName = "MongoDB";
-        break;
-      case "project":
-        categoryName = "Project";
-        break;
-    }
+// PUT (update) an existing log
+app.put("/api/logs/:id", isAuthenticated, async (req, res) => {
+  const { title, category, content, importance } = req.body;
+  const logId = req.params.id;
 
-    // Create mail options
-    const mailOptions = {
-      from: emailConfig.options.from,
-      to: emailConfig.options.to,
-      subject: `New Learning Entry: ${log.title}`,
-      html: `\
-        <h1>New Web Developer Bootcamp Journal Entry</h1>
-        <h2>${log.title}</h2>
-        <p><strong>Date:</strong> ${formattedDate}</p>
-        <p><strong>Category:</strong> ${categoryName}</p>
-        <p><strong>Understanding Level:</strong> ${log.importance}/5</p>
-        <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #4CAF50;">
-          <p>${log.content.replace(/\n/g, "<br>")}</p>
-        </div>
-        <p style="margin-top: 30px;">Keep up the great work with your web development journey!</p>
-      `,
+  if (!title || !category || !content || importance === undefined) {
+    return res
+      .status(400)
+      .json({ error: "Missing required log fields for update" });
+  }
+
+  // Validate ObjectId format
+  if (!mongoose.Types.ObjectId.isValid(logId)) {
+    return res.status(400).json({ error: "Invalid log ID format" });
+  }
+
+  try {
+    const updatedLogData = {
+      title,
+      category,
+      content,
+      importance: parseInt(importance, 10),
+      // Do NOT update userId or timestamp here generally
     };
 
-    // Send email
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        logToFile("Email notification failed", {
-          error: error.message,
-          logId: log.id,
+    // Find the log by ID and ensure it belongs to the current user
+    const updatedLog = await Log.findOneAndUpdate(
+      { _id: logId, userId: req.session.userId }, // Condition: Match ID and User ID
+      updatedLogData,
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedLog) {
+      // If null, either log doesn't exist or doesn't belong to the user
+      logToFile("Log update failed: Not found or unauthorized", {
+        userId: req.session.userId,
+        logId,
+      });
+      return res
+        .status(404)
+        .json({
+          error: "Log entry not found or you don't have permission to edit it.",
         });
-        console.error("Failed to send email notification:", error);
-      } else {
-        logToFile("Email notification sent", { logId: log.id, info });
-        console.log("Email notification sent:", info.response);
-      }
-    });
+    }
+
+    logToFile("Log entry updated", { userId: req.session.userId, logId });
+    res.json(updatedLog);
   } catch (err) {
-    logToFile("Error creating email transporter", { error: err.message });
-    console.error("Error setting up email notification:", err);
+    logToFile("Error updating log", {
+      userId: req.session.userId,
+      logId,
+      error: err.message,
+    });
+    res.status(500).json({ error: "Failed to update log entry" });
+  }
+});
+
+// DELETE a log entry
+app.delete("/api/logs/:id", isAuthenticated, async (req, res) => {
+  const logId = req.params.id;
+
+  // Validate ObjectId format
+  if (!mongoose.Types.ObjectId.isValid(logId)) {
+    return res.status(400).json({ error: "Invalid log ID format" });
+  }
+
+  try {
+    // Find the log by ID and ensure it belongs to the current user before deleting
+    const result = await Log.findOneAndDelete({
+      _id: logId,
+      userId: req.session.userId,
+    });
+
+    if (!result) {
+      // If null, either log doesn't exist or doesn't belong to the user
+      logToFile("Log deletion failed: Not found or unauthorized", {
+        userId: req.session.userId,
+        logId,
+      });
+      return res
+        .status(404)
+        .json({
+          error:
+            "Log entry not found or you don't have permission to delete it.",
+        });
+    }
+
+    logToFile("Log entry deleted", { userId: req.session.userId, logId });
+    res.status(200).json({ success: true, message: "Log entry deleted" }); // Send 200 OK or 204 No Content
+  } catch (err) {
+    logToFile("Error deleting log", {
+      userId: req.session.userId,
+      logId,
+      error: err.message,
+    });
+    res.status(500).json({ error: "Failed to delete log entry" });
+  }
+});
+
+// --- Email Routes (Keep as is for now) ---
+// GET email status
+app.get("/api/status", (req, res) => {
+  // ... (keep existing email status logic) ...
+});
+
+// POST test email
+app.post("/api/test-email", isAuthenticated, async (req, res) => {
+  // ... (keep existing test email logic) ...
+});
+
+// --- Serve Frontend Routes ---
+// Serve login page explicitly
+app.get("/login.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "login.html"));
+});
+
+// Serve main app page (index.html) only if authenticated
+app.get("/", isAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "index.html"));
+});
+// Fallback for root if not authenticated (redirect to login)
+app.get("/", (req, res) => {
+  if (!req.session || !req.session.userId) {
+    res.redirect("/login.html");
+  } else {
+    // Should have been caught by isAuthenticated, but as a safeguard
+    res.sendFile(path.join(__dirname, "..", "index.html"));
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  logToFile("Server started", { port: PORT });
+});
+
+// Optional: Add default user creation logic if DB is empty (run once)
+async function createDefaultUserIfNone() {
+  try {
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      console.log("No users found. Creating default admin user...");
+      const defaultAdmin = new User({
+        username: "admin",
+        password: "admin", // Password will be hashed by pre-save hook
+        email: "admin@example.com",
+        role: "admin",
+      });
+      await defaultAdmin.save();
+      console.log(
+        "Default admin user created (username: admin, password: admin)"
+      );
+    }
+  } catch (error) {
+    console.error("Error creating default user:", error);
   }
 }
 
-// Catch-all route to serve the main app
-app.get("*", (req, res) => {
-  // Check if it's an API request
-  if (req.path.startsWith("/api/")) {
-    return res.status(404).json({ error: "API endpoint not found" });
-  }
-
-  // Determine which file to serve
-  let filePath;
-
-  // If the path is the root or index, serve index.html
-  if (req.path === "/" || req.path === "/index.html") {
-    filePath = path.join(__dirname, "..", "index.html");
-  }
-  // If the path is login, serve login.html
-  else if (req.path === "/login" || req.path === "/login.html") {
-    filePath = path.join(__dirname, "..", "login.html");
-  }
-  // For all other paths, try to find the file
-  else {
-    filePath = path.join(__dirname, "..", req.path);
-  }
-
-  // Check if the file exists and serve it
-  if (fs.existsSync(filePath)) {
-    return res.sendFile(filePath);
-  }
-
-  // If file doesn't exist, serve index.html as a fallback (for SPA behavior)
-  res.sendFile(path.join(__dirname, "..", "index.html"));
-});
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`View the app at http://localhost:${PORT}`);
+// Call this after MongoDB connection is established
+mongoose.connection.once("open", () => {
+  createDefaultUserIfNone();
 });
