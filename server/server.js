@@ -546,6 +546,8 @@ async function createDefaultUserIfNone() {
     const userCount = await User.countDocuments();
     if (userCount === 0) {
       console.log("No users found. Creating default admin user...");
+
+      // Create admin user
       const defaultAdmin = new User({
         username: "admin",
         password: "admin", // Password will be hashed by pre-save hook
@@ -558,11 +560,37 @@ async function createDefaultUserIfNone() {
       );
     }
   } catch (error) {
-    console.error("Error creating default user:", error);
+    console.error("Error creating default admin user:", error);
   }
 }
 
-// Call this after MongoDB connection is established
+// Function to create or update specific users (like srushti)
+async function ensureSpecificUsersExist() {
+  try {
+    // Check if srushti user exists
+    const existingUser = await User.findOne({ username: "srushti" });
+
+    if (!existingUser) {
+      console.log("Creating 'srushti' user...");
+      // Create srushti user
+      const srushtiUser = new User({
+        username: "srushti",
+        password: "paneer", // Password will be hashed by pre-save hook
+        email: "srushti@example.com",
+        role: "user",
+      });
+      await srushtiUser.save();
+      console.log("User 'srushti' created with password 'paneer'");
+    } else {
+      console.log("User 'srushti' already exists");
+    }
+  } catch (error) {
+    console.error("Error ensuring specific users exist:", error);
+  }
+}
+
+// Call these functions after MongoDB connection is established
 mongoose.connection.once("open", () => {
   createDefaultUserIfNone();
+  ensureSpecificUsersExist(); // This will create srushti user if it doesn't exist
 });
