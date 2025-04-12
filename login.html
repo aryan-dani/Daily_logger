@@ -2,232 +2,231 @@
 
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Login - Daily Logger</title>
-		<link
-			rel="stylesheet"
-			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-		<link rel="stylesheet" href="css/style.css" />
-		<style>
-			.login-container {
-				max-width: 400px;
-				margin: 100px auto;
-				padding: 30px;
-				border-radius: 8px;
-				box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-				background-color: #fff;
-			}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Daily Logger</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .login-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+      }
 
-			.login-logo {
-				text-align: center;
-				margin-bottom: 20px;
-			}
+      .login-logo {
+        text-align: center;
+        margin-bottom: 20px;
+      }
 
-			.login-logo i {
-				font-size: 48px;
-				color: #007bff;
-			}
+      .login-logo i {
+        font-size: 48px;
+        color: #007bff;
+      }
 
-			.login-heading {
-				text-align: center;
-				margin-bottom: 25px;
-				color: #333;
-			}
+      .login-heading {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #333;
+      }
 
-			.login-form .input-group {
-				margin-bottom: 20px;
-			}
+      .login-form .input-group {
+        margin-bottom: 20px;
+      }
 
-			.login-form label {
-				display: block;
-				margin-bottom: 5px;
-				font-weight: 500;
-			}
+      .login-form label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
 
-			.login-form input {
-				width: 100%;
-				padding: 10px 15px;
-				border: 1px solid #ddd;
-				border-radius: 4px;
-				font-size: 16px;
-				transition: border-color 0.3s;
-			}
+      .login-form input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
 
-			.login-form input:focus {
-				outline: none;
-				border-color: #007bff;
-			}
+      .login-form input:focus {
+        outline: none;
+        border-color: #007bff;
+      }
 
-			.login-btn {
-				width: 100%;
-				padding: 12px 0;
-				background-color: #007bff;
-				color: white;
-				border: none;
-				border-radius: 4px;
-				font-size: 16px;
-				cursor: pointer;
-				transition: background-color 0.3s;
-			}
+      .login-btn {
+        width: 100%;
+        padding: 12px 0;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
 
-			.login-btn:hover {
-				background-color: #0069d9;
-			}
+      .login-btn:hover {
+        background-color: #0069d9;
+      }
 
-			.error-message {
-				color: #dc3545;
-				font-size: 14px;
-				margin-top: 15px;
-				text-align: center;
-				display: none;
-			}
+      .error-message {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 15px;
+        text-align: center;
+        display: none;
+      }
 
-			.help-text {
-				margin-top: 20px;
-				text-align: center;
-				color: #6c757d;
-				font-size: 14px;
-				border-top: 1px solid #eee;
-				padding-top: 15px;
-			}
-		</style>
-	</head>
-	<body>
-		<div class="login-container">
-			<div class="login-logo">
-				<i class="fas fa-book-reader"></i>
-			</div>
-			<h2 class="login-heading">Daily Logger</h2>
-			<form class="login-form" id="login-form">
-				<div class="input-group">
-					<label for="username">Username</label>
-					<input
-						type="text"
-						id="username"
-						name="username"
-						required
-						autocomplete="username" />
-				</div>
-				<div class="input-group">
-					<label for="password">Password</label>
-					<input
-						type="password"
-						id="password"
-						name="password"
-						required
-						autocomplete="current-password" />
-				</div>
-				<button type="submit" class="login-btn" id="login-btn">
-					<i class="fas fa-sign-in-alt"></i> Login
-				</button>
-				<div class="error-message" id="error-msg">
-					Invalid username or password
-				</div>
-				<div class="help-text">
-					Use username: <strong>srushti</strong> and password:
-					<strong>paneer</strong>
-				</div>
-			</form>
-		</div>
+      .help-text {
+        margin-top: 20px;
+        text-align: center;
+        color: #6c757d;
+        font-size: 14px;
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-logo">
+        <i class="fas fa-book-reader"></i>
+      </div>
+      <h2 class="login-heading">Daily Logger</h2>
+      <form class="login-form" id="login-form">
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            autocomplete="username"
+          />
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+        <button type="submit" class="login-btn" id="login-btn">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+        <div class="error-message" id="error-msg">
+          Invalid username or password
+        </div>
+      </form>
+    </div>
 
-		<script src="js/config.js"></script>
-		<script>
-			document.addEventListener("DOMContentLoaded", function () {
-				const loginForm = document.getElementById("login-form");
-				const errorMsg = document.getElementById("error-msg");
+    <script src="js/config.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const loginForm = document.getElementById("login-form");
+        const errorMsg = document.getElementById("error-msg");
 
-				// Get API URL from config
-				const API_BASE_URL =
-					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
+        // Get API URL from config
+        const API_BASE_URL =
+          window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
 
-				const BASE_PATH =
-					window.BASE_PATH !== undefined ? window.BASE_PATH : "";
+        const BASE_PATH =
+          window.BASE_PATH !== undefined ? window.BASE_PATH : "";
 
-				console.log("Login page loaded with API URL:", API_BASE_URL);
-				console.log("Base path:", BASE_PATH);
+        console.log("Login page loaded with API URL:", API_BASE_URL);
+        console.log("Base path:", BASE_PATH);
 
-				// Check if already logged in
-				fetch(`${API_BASE_URL}/api/user`, {
-					credentials: "include",
-				})
-					.then((response) => {
-						if (!response.ok) {
-							console.log("Not authenticated, ready for login");
-							return { authenticated: false };
-						}
-						return response.json();
-					})
-					.then((data) => {
-						if (data.authenticated) {
-							console.log("Already authenticated, redirecting to index");
-							window.location.href = `${BASE_PATH}/index.html`;
-						}
-					})
-					.catch((error) => {
-						console.log(
-							"Not authenticated or error checking auth status:",
-							error
-						);
-					});
+        // Check if already logged in
+        fetch(`${API_BASE_URL}/api/user`, {
+          credentials: "include",
+        })
+          .then((response) => {
+            if (!response.ok) {
+              console.log("Not authenticated, ready for login");
+              return { authenticated: false };
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.authenticated) {
+              console.log("Already authenticated, redirecting to index");
+              window.location.href = `${BASE_PATH}/index.html`;
+            }
+          })
+          .catch((error) => {
+            console.log(
+              "Not authenticated or error checking auth status:",
+              error
+            );
+          });
 
-				loginForm.addEventListener("submit", function (e) {
-					e.preventDefault();
+        loginForm.addEventListener("submit", function (e) {
+          e.preventDefault();
 
-					const username = document.getElementById("username").value;
-					const password = document.getElementById("password").value;
-					const loginBtn = document.getElementById("login-btn");
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const loginBtn = document.getElementById("login-btn");
 
-					// Disable button and show loading state
-					loginBtn.disabled = true;
-					loginBtn.innerHTML =
-						'<i class="fas fa-spinner fa-spin"></i> Logging in...';
+          // Disable button and show loading state
+          loginBtn.disabled = true;
+          loginBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Logging in...';
 
-					// Clear previous error
-					errorMsg.style.display = "none";
+          // Clear previous error
+          errorMsg.style.display = "none";
 
-					console.log("Attempting login with credentials:", username);
+          console.log("Attempting login with credentials:", username);
 
-					fetch(`${API_BASE_URL}/api/login`, {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({ username, password }),
-						credentials: "include",
-					})
-						.then((response) => {
-							console.log("Login response status:", response.status);
-							if (!response.ok) {
-								// If response is not OK, it's an auth error
-								return response.json().then((data) => {
-									throw new Error(data.error || "Login failed");
-								});
-							}
-							return response.json();
-						})
-						.then((data) => {
-							if (data.success) {
-								console.log("Login successful, redirecting to index");
-								window.location.href = `${BASE_PATH}/index.html`;
-							} else {
-								// Show error message
-								throw new Error(data.error || "Invalid username or password");
-							}
-						})
-						.catch((error) => {
-							console.error("Login error:", error.message);
-							errorMsg.textContent =
-								error.message || "Invalid username or password";
-							errorMsg.style.display = "block";
+          fetch(`${API_BASE_URL}/api/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ username, password }),
+            credentials: "include",
+          })
+            .then((response) => {
+              console.log("Login response status:", response.status);
+              if (!response.ok) {
+                // If response is not OK, it's an auth error
+                return response.json().then((data) => {
+                  throw new Error(data.error || "Login failed");
+                });
+              }
+              return response.json();
+            })
+            .then((data) => {
+              if (data.success) {
+                console.log("Login successful, redirecting to index");
+                window.location.href = `${BASE_PATH}/index.html`;
+              } else {
+                // Show error message
+                throw new Error(data.error || "Invalid username or password");
+              }
+            })
+            .catch((error) => {
+              console.error("Login error:", error.message);
+              errorMsg.textContent =
+                error.message || "Invalid username or password";
+              errorMsg.style.display = "block";
 
-							// Reset button
-							loginBtn.disabled = false;
-							loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-						});
-				});
-			});
-		</script>
-	</body>
+              // Reset button
+              loginBtn.disabled = false;
+              loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            });
+        });
+      });
+    </script>
+  </body>
 </html>
