@@ -8,40 +8,66 @@ const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
 
+// Define the data directory path
+const dataDir = process.env.DATA_DIR || __dirname;
+console.log(`Using data directory: ${dataDir}`);
+
+// Ensure data directory exists
+if (!fs.existsSync(dataDir)) {
+	try {
+		fs.mkdirSync(dataDir, { recursive: true });
+		console.log(`Created data directory: ${dataDir}`);
+	} catch (err) {
+		console.error(`Error creating data directory ${dataDir}:`, err);
+		// Exit or handle error appropriately if data directory is critical
+		process.exit(1);
+	}
+}
+
+
 // Initialize express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Load email config if available
-let emailConfig = {};
-try {
-	const emailConfigPath = path.join(__dirname, "email-config.js");
-	if (fs.existsSync(emailConfigPath)) {
-		emailConfig = require("./email-config.js");
-		// Set up the transport object in the expected format
-		emailConfig.transport = {
-			host: emailConfig.host,
-			port: emailConfig.port,
-			secure: emailConfig.secure,
-			auth: {
-				user: emailConfig.user,
-				pass: emailConfig.password,
-			},
-		};
+// Load email config from environment variables
+let emailConfig = {
+	enabled: process.env.EMAIL_ENABLED === "true",
+	transport: {
+		host: process.env.EMAIL_HOST,
+		port: parseInt(process.env.EMAIL_PORT || "587", 10),
+		secure: process.env.EMAIL_SECURE === "true", // true for 465, false for other ports
+		auth: {
+			user: process.env.EMAIL_USER,
+			pass: process.env.EMAIL_PASSWORD,
+		},
+	},
+	options: {
+		from: process.env.EMAIL_FROM,
+		to: process.env.EMAIL_TO,
+	},
+};
 
-		// Set up the options object in the expected format
-		emailConfig.options = {
-			from: emailConfig.from,
-			to: emailConfig.to,
-		};
-
-		console.log("Email configuration loaded successfully");
+// Basic validation for email config
+if (emailConfig.enabled) {
+	if (
+		!emailConfig.transport.host ||
+		!emailConfig.transport.auth.user ||
+		!emailConfig.transport.auth.pass ||
+		!emailConfig.options.from ||
+		!emailConfig.options.to
+	) {
+		console.warn(
+			"Email is enabled, but some environment variables (EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD, EMAIL_FROM, EMAIL_TO) are missing."
+		);
+		// Optionally disable email if config is incomplete
+		// emailConfig.enabled = false;
 	} else {
-		console.log("No email configuration found");
+		console.log("Email configuration loaded successfully from environment variables.");
 	}
-} catch (err) {
-	console.log("Error loading email config:", err);
+} else {
+	console.log("Email notifications are disabled (EMAIL_ENABLED is not 'true').");
 }
+
 
 // Middleware
 app.use(express.static(path.join(__dirname, "..")));
@@ -75,7 +101,6 @@ app.use(
 );
 
 // Session configuration - critical for authentication
-// Session configuration - critical for authentication
 app.use(
 	session({
 		secret:
@@ -92,6 +117,7 @@ app.use(
 		},
 	})
 );
+
 // Helper function for logging
 function logToFile(message, data = {}) {
 	const logEntry = {
@@ -100,7 +126,7 @@ function logToFile(message, data = {}) {
 		...data,
 	};
 
-	const logsPath = path.join(__dirname, "logs.json");
+	const logsPath = path.join(dataDir, "logs.json"); // Use dataDir
 
 	// Read existing logs
 	let logs = [];
@@ -133,56 +159,68 @@ function logToFile(message, data = {}) {
 }
 
 // Load user database
-const usersDbPath = path.join(__dirname, "users.json");
+const usersDbPath = path.join(dataDir, "users.json"); // Use dataDir
 let users = [];
 
 try {
-	// Always recreate users with correct hashing
-	const defaultUsers = [
-		{
-			id: 1,
-			username: "admin",
-			password: bcrypt.hashSync("admin", 10),
-			email: "admin@example.com",
-			role: "admin",
-		},
-		{
-			id: 2,
-			username: "srushti",
-			password: bcrypt.hashSync("paneer", 10),
-			email: "srushti@example.com",
-			role: "user",
-		},
-	];
+	// Check if users.json exists
+	if (fs.existsSync(usersDbPath)) {
+		// Load existing users
+		users = JSON.parse(fs.readFileSync(usersDbPath, "utf8"));
+		logToFile("Loaded existing users database", { count: users.length });
+	} else {
+		// Create default users only if the file doesn't exist
+		const defaultUsers = [
+			{
+				id: 1,
+				username: "admin",
+				password: bcrypt.hashSync("admin", 10), // Consider stronger default password or prompt
+				email: "admin@example.com",
+				role: "admin",
+			},
+			{
+				id: 2,
+				username: "srushti",
+				password: bcrypt.hashSync("paneer", 10), // Consider stronger default password or prompt
+				email: "srushti@example.com",
+				role: "user",
+			},
+		];
 
-	// Save to file
-	fs.writeFileSync(usersDbPath, JSON.stringify(defaultUsers, null, 2), "utf8");
-	users = defaultUsers;
+		// Save to file
+		fs.writeFileSync(usersDbPath, JSON.stringify(defaultUsers, null, 2), "utf8");
+		users = defaultUsers;
 
-	logToFile("Users database recreated with default users", {
-		users: defaultUsers.map((u) => u.username),
-	});
-	console.log("Users created: admin, srushti");
+		logToFile("Created users database with default users", {
+			users: defaultUsers.map((u) => u.username),
+		});
+		console.log("Users created: admin, srushti");
+	}
 } catch (err) {
-	logToFile("Error creating users database", { error: err.message });
-	console.error("Error creating users database:", err);
+	logToFile("Error initializing users database", { error: err.message });
+	console.error("Error initializing users database:", err);
+	// Decide if the app can run without users db
+	process.exit(1);
 }
 
+
 // Load logs database
-const logsDbPath = path.join(__dirname, "logs_db.json");
+const logsDbPath = path.join(dataDir, "logs_db.json"); // Use dataDir
 let logs = [];
 
 try {
 	if (fs.existsSync(logsDbPath)) {
 		logs = JSON.parse(fs.readFileSync(logsDbPath, "utf8"));
+		logToFile("Loaded existing logs database", { count: logs.length });
 	} else {
-		// Create empty logs database
+		// Create empty logs database if it doesn't exist
 		fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
 		logToFile("Created empty logs database");
 	}
 } catch (err) {
 	logToFile("Error loading logs database", { error: err.message });
 	console.error("Error loading logs database:", err);
+	// Decide if the app can run without logs db
 }
 
 // Middleware to check if user is authenticated
@@ -317,7 +355,15 @@ app.post("/api/logs", verifyToken, (req, res) => {
 	logs.push(log);
 
 	// Save to file
-	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+	try { // Add error handling for file write
+		fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath defined earlier
+	} catch (err) {
+		logToFile("Error saving logs database after create", { error: err.message });
+		console.error("Error saving logs database after create:", err);
+		// Decide if you should return an error to the client
+		return res.status(500).json({ error: "Failed to save log data." });
+	}
+
 
 	// Check if email notification is enabled and send email
 	if (emailConfig.enabled && emailConfig.transport && emailConfig.options) {
@@ -345,7 +391,15 @@ app.put("/api/logs/:id", verifyToken, (req, res) => {
 	logs[index] = updatedLog;
 
 	// Save to file
-	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+	try { // Add error handling
+		fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath
+	} catch (err) {
+		logToFile("Error saving logs database after update", { error: err.message });
+		console.error("Error saving logs database after update:", err);
+		// Optionally revert the change in memory or return error
+		return res.status(500).json({ error: "Failed to save log data." });
+	}
+
 
 	logToFile("Log updated", { logId: id, title: updatedLog.title });
 
@@ -365,7 +419,15 @@ app.delete("/api/logs/:id", verifyToken, (req, res) => {
 	}
 
 	// Save to file
-	fs.writeFileSync(logsDbPath, JSON.stringify(logs), "utf8");
+	try { // Add error handling
+		fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath
+	} catch (err) {
+		logToFile("Error saving logs database after delete", { error: err.message });
+		console.error("Error saving logs database after delete:", err);
+		// Optionally revert the change in memory or return error
+		return res.status(500).json({ error: "Failed to save log data." });
+	}
+
 
 	logToFile("Log deleted", { logId: id });
 
@@ -404,7 +466,15 @@ app.post("/api/logs/sync", verifyToken, (req, res) => {
 	});
 
 	// Save to file
-	fs.writeFileSync(logsDbPath, JSON.stringify(logs, "utf8"));
+	try { // Add error handling
+		fs.writeFileSync(logsDbPath, JSON.stringify(logs, null, 2), "utf8"); // Use logsDbPath
+	} catch (err) {
+		logToFile("Error saving logs database after sync", { error: err.message });
+		console.error("Error saving logs database after sync:", err);
+		// Return error
+		return res.status(500).json({ error: "Failed to save synced log data." });
+	}
+
 
 	logToFile("Logs synced from client", { added, updated });
 

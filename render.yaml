@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: daily-logger
+    runtime: node # Specify Node runtime
+    plan: free
+    # Specify the Node.js version based on your package.json
+    env: node
+    nodeVersion: "16" # Or "16.x" if Render supports it, otherwise specific version like "16.20.0"
+    # Use npm ci for faster, more reliable builds
+    buildCommand: "npm ci"
+    startCommand: "node server/server.js"
+    # Add a health check path
+    healthCheckPath: /api/status # Use your existing status endpoint
+    envVars:
+      - key: NODE_ENV
+        value: production # Set Node environment to production
+      - key: PORT # Render sets this automatically, but good practice to acknowledge
+        value: 3000 # Default port if Render doesn't set it (Render will override)
+      - key: DATA_DIR # Directory for persistent data
+        value: /data/daily-logger-data # Mount path for the disk
+      - key: SESSION_SECRET
+        generateValue: true # Let Render generate a secure session secret
+      # --- Email Configuration (Set these in Render Dashboard Environment) ---
+      - key: EMAIL_ENABLED
+        value: "true" # Set to "true" to enable email, configure below if true
+      - key: EMAIL_HOST
+        value: "" # e.g., smtp.example.com
+      - key: EMAIL_PORT
+        value: "587" # e.g., 587 or 465
+      - key: EMAIL_SECURE # Set to "true" if using port 465
+        value: "false"
+      - key: EMAIL_USER
+        value: "" # Your email username
+      - key: EMAIL_PASSWORD
+        sync: false # Mark as secret, set value in Render dashboard
+      - key: EMAIL_FROM
+        value: "" # e.g., "Daily Logger <no-reply@example.com>"
+      - key: EMAIL_TO
+        value: "" # Email address to send notifications to
+    disks:
+      - name: daily-logger-data # Name of the persistent disk
+        mountPath: /data/daily-logger-data # Where the disk is mounted in the container
+        sizeGB: 1 # Size of the disk (minimum 1 GB for free tier)
+    autoDeploy: true
+    branch: main
