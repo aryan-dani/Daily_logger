@@ -958,5 +958,162 @@
     "message": "Log created",
     "logId": "m9duv2r2lqf16",
     "title": "h"
+  },
+  {
+    "timestamp": "2025-04-12T07:04:49.575Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:04:49.578Z",
+    "message": "Loaded existing logs database",
+    "count": 5
+  },
+  {
+    "timestamp": "2025-04-12T07:05:54.978Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:05:54.981Z",
+    "message": "Loaded existing logs database",
+    "count": 5
+  },
+  {
+    "timestamp": "2025-04-12T07:05:59.427Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:06:06.426Z",
+    "message": "Log created",
+    "logId": "m9dvgv66xjr74",
+    "title": "h"
+  },
+  {
+    "timestamp": "2025-04-12T07:11:46.101Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:11:46.104Z",
+    "message": "Loaded existing logs database",
+    "count": 6
+  },
+  {
+    "timestamp": "2025-04-12T07:14:41.898Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:14:41.902Z",
+    "message": "Loaded existing logs database",
+    "count": 6
+  },
+  {
+    "timestamp": "2025-04-12T07:15:07.894Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:15:07.905Z",
+    "message": "Loaded existing logs database",
+    "count": 6
+  },
+  {
+    "timestamp": "2025-04-12T07:15:45.022Z",
+    "message": "User logged in",
+    "username": "srushti",
+    "userId": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:17:09.189Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:17:09.194Z",
+    "message": "Loaded existing logs database",
+    "count": 6
+  },
+  {
+    "timestamp": "2025-04-12T07:17:32.673Z",
+    "message": "Log created",
+    "logId": "m9dvvkmtg99ry",
+    "title": "j"
+  },
+  {
+    "timestamp": "2025-04-12T07:18:26.920Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:18:26.923Z",
+    "message": "Loaded existing logs database",
+    "count": 7
+  },
+  {
+    "timestamp": "2025-04-12T07:18:36.749Z",
+    "message": "Log created",
+    "logId": "m9dvwy382kmzb",
+    "title": "hi"
+  },
+  {
+    "timestamp": "2025-04-12T07:24:29.219Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:24:29.223Z",
+    "message": "Loaded existing logs database",
+    "count": 8
+  },
+  {
+    "timestamp": "2025-04-12T07:25:15.856Z",
+    "message": "Loaded existing users database",
+    "count": 2
+  },
+  {
+    "timestamp": "2025-04-12T07:25:15.861Z",
+    "message": "Loaded existing logs database",
+    "count": 8
+  },
+  {
+    "timestamp": "2025-04-12T07:25:23.604Z",
+    "message": "Log created",
+    "logId": "m9dw5nx5thtm3",
+    "title": "Basic Html and styling"
+  },
+  {
+    "timestamp": "2025-04-12T07:25:27.403Z",
+    "message": "Email notification sent",
+    "logId": "m9dw5nx5thtm3",
+    "info": {
+      "accepted": [
+        "daniaryan212@gmail.com"
+      ],
+      "rejected": [],
+      "ehlo": [
+        "SIZE 35882577",
+        "8BITMIME",
+        "AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH",
+        "ENHANCEDSTATUSCODES",
+        "PIPELINING",
+        "CHUNKING",
+        "SMTPUTF8"
+      ],
+      "envelopeTime": 1011,
+      "messageTime": 818,
+      "messageSize": 869,
+      "response": "250 2.0.0 OK  1744442728 98e67ed59e1d1-306dd171942sm7122953a91.33 - gsmtp",
+      "envelope": {
+        "from": "daniaryan212@gmail.com",
+        "to": [
+          "daniaryan212@gmail.com"
+        ]
+      },
+      "messageId": "<1a10d206-8cec-7fbd-ee31-5321695b750c@gmail.com>"
+    }
   }
 ]

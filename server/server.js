@@ -1,4 +1,5 @@
 /** @format */
+require('dotenv').config(); // Load environment variables from .env file
 
 const express = require("express");
 const session = require("express-session");
@@ -122,9 +123,11 @@ app.use(
     store: new FileStore({
       path: sessionDir, // Path to store session files
       ttl: 86400, // Session TTL in seconds (e.g., 24 hours)
+      retries: 0, // Don't retry reading the session file if it fails initially
       logFn: function (msg) {
-        console.log("[SessionFileStore]", msg);
-      }, // Optional logging
+        // Optional: Adjust logging to be less verbose if desired
+        // console.log("[SessionFileStore]", msg);
+      },
     }),
     secret:
       process.env.SESSION_SECRET || "your-secret-key-change-in-production",
@@ -569,7 +572,7 @@ app.get("/api/test-email", verifyToken, (req, res) => {
     from: emailConfig.options.from,
     to: user.email,
     subject: "Test Email from Web Developer Bootcamp Journal",
-    html: `
+    html: `\
       <h1>Test Email</h1>
       <p>This is a test email from your Web Developer Bootcamp Journal application.</p>
       <p>If you're receiving this email, your email notifications are working correctly!</p>
@@ -649,7 +652,7 @@ function sendEmailNotification(log) {
       from: emailConfig.options.from,
       to: emailConfig.options.to,
       subject: `New Learning Entry: ${log.title}`,
-      html: `
+      html: `\
         <h1>New Web Developer Bootcamp Journal Entry</h1>
         <h2>${log.title}</h2>
         <p><strong>Date:</strong> ${formattedDate}</p>
