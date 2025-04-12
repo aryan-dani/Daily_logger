@@ -23,7 +23,7 @@ server/sessions/
 # Sensitive data / Databases (keep out of Git)
 server/users.json
 server/logs_db.json
-server/email-config.js # Already ignored, good.
+server/email-config.js 
 
 # Optional: Ignore OS generated files
 .DS_Store

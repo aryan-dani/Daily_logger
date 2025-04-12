@@ -2,264 +2,278 @@
 
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Web Dev Bootcamp Journal</title>
-		<link rel="stylesheet" href="css/style.css" />
-		<link
-			rel="stylesheet"
-			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link
-			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-			rel="stylesheet" />
-	</head>
-	<body>
-		<div class="container">
-			<header>
-				<h1><i class="fas fa-code"></i> Web Developer Bootcamp Journal</h1>
-				<p class="date-display" id="current-date">Loading date...</p>
-				<!-- Add a clearly visible settings icon -->
-				<div class="settings-icon" id="settings-toggle">
-					<i class="fas fa-cog"></i>
-				</div>
-			</header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Dev Bootcamp Journal</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1><i class="fas fa-code"></i> Web Developer Bootcamp Journal</h1>
+        <p class="date-display" id="current-date">Loading date...</p>
+        <!-- Add a clearly visible settings icon -->
+        <div class="settings-icon" id="settings-toggle">
+          <i class="fas fa-cog"></i>
+        </div>
+      </header>
 
-			<!-- Debug button for testing functionality -->
-			<div style="text-align: center; margin: 10px 0">
-				<button
-					id="debug-button"
-					style="
-						padding: 5px 10px;
-						background: #ff6b6b;
-						color: white;
-						border: none;
-						border-radius: 4px;
-						cursor: pointer;
-					">
-					Debug Functions
-				</button>
-			</div>
+      <!-- Debug button for testing functionality -->
+      <div style="text-align: center; margin: 10px 0">
+        <button
+          id="debug-button"
+          style="
+            padding: 5px 10px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+          "
+        >
+          Debug Functions
+        </button>
+      </div>
 
-			<!-- Settings Panel -->
-			<div class="settings-panel" id="settings-panel">
-				<div class="settings-header">
-					<h2><i class="fas fa-cog"></i> Journal Settings</h2>
-					<span class="close-settings">&times;</span>
-				</div>
-				<div class="settings-content">
-					<div class="settings-section">
-						<h3><i class="fas fa-envelope"></i> Email Notifications</h3>
-						<p class="settings-description">
-							Get notified by email when you add new entries to your journal.
-						</p>
+      <!-- Settings Panel -->
+      <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+          <h2><i class="fas fa-cog"></i> Journal Settings</h2>
+          <span class="close-settings">&times;</span>
+        </div>
+        <div class="settings-content">
+          <div class="settings-section">
+            <h3><i class="fas fa-envelope"></i> Email Notifications</h3>
+            <p class="settings-description">
+              Get notified by email when you add new entries to your journal.
+            </p>
 
-						<div class="settings-status" id="email-status">
-							<div class="status-indicator">
-								<span class="status-dot"></span>
-								<span class="status-text">Loading email configuration...</span>
-							</div>
-							<button class="btn secondary" id="test-email-btn">
-								<i class="fas fa-paper-plane"></i> Test Email
-							</button>
-						</div>
+            <div class="settings-status" id="email-status">
+              <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Loading email configuration...</span>
+              </div>
+              <button class="btn secondary" id="test-email-btn">
+                <i class="fas fa-paper-plane"></i> Test Email
+              </button>
+            </div>
 
-						<div class="settings-info">
-							<p>
-								<i class="fas fa-info-circle"></i> To configure email
-								notifications, edit the <code>email-config.js</code> file in the
-								server directory.
-							</p>
-						</div>
-					</div>
-				</div>
-			</div>
+            <div class="settings-info">
+              <p>
+                <i class="fas fa-info-circle"></i> To configure email
+                notifications, edit the <code>email-config.js</code> file in the
+                server directory.
+              </p>
+            </div>
+          </div>
 
-			<div class="main-content">
-				<div class="input-section">
-					<h2>Today's Learning Entry</h2>
-					<div class="input-group">
-						<label for="log-title">Topic Covered:</label>
-						<input
-							type="text"
-							id="log-title"
-							placeholder="What did you learn today?" />
-					</div>
-					<div class="input-group">
-						<label for="log-category">Course Section:</label>
-						<select id="log-category">
-							<option value="html-css">HTML & CSS Basics</option>
-							<option value="javascript">JavaScript</option>
-							<option value="node">Node.js</option>
-							<option value="express">Express</option>
-							<option value="mongodb">MongoDB</option>
-							<option value="project">Projects</option>
-						</select>
-					</div>
-					<div class="input-group">
-						<label for="log-content">Key Learnings & Notes:</label>
-						<textarea
-							id="log-content"
-							placeholder="Describe concepts, code snippets, challenges, and insights from today's lesson..."></textarea>
-					</div>
-					<div class="input-group">
-						<label for="log-importance">Understanding Level:</label>
-						<div class="importance-slider">
-							<input
-								type="range"
-								id="log-importance"
-								min="1"
-								max="5"
-								value="3" />
-							<div class="importance-labels">
-								<span>Need Review</span>
-								<span>Fully Understood</span>
-							</div>
-						</div>
-					</div>
-					<button id="save-log" class="btn primary">
-						<i class="fas fa-save"></i> Save Entry
-					</button>
-				</div>
+          <div class="settings-section">
+            <h3><i class="fas fa-sign-out-alt"></i> Account</h3>
+            <button class="btn danger" id="logout-btn">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+          </div>
+        </div>
+      </div>
 
-				<div class="logs-display">
-					<div class="course-progress">
-						<h3>Your Bootcamp Progress</h3>
-						<div class="progress-bar-container">
-							<div class="progress-bar" id="course-progress-bar"></div>
-						</div>
-						<div class="progress-stats">
-							<span id="days-logged">0 days</span>
-							<span id="progress-percentage">0%</span>
-						</div>
-					</div>
+      <div class="main-content">
+        <div class="input-section">
+          <h2>Today's Learning Entry</h2>
+          <div class="input-group">
+            <label for="log-title">Topic Covered:</label>
+            <input
+              type="text"
+              id="log-title"
+              placeholder="What did you learn today?"
+            />
+          </div>
+          <div class="input-group">
+            <label for="log-category">Course Section:</label>
+            <select id="log-category">
+              <option value="html-css">HTML & CSS Basics</option>
+              <option value="javascript">JavaScript</option>
+              <option value="node">Node.js</option>
+              <option value="express">Express</option>
+              <option value="mongodb">MongoDB</option>
+              <option value="project">Projects</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="log-content">Key Learnings & Notes:</label>
+            <textarea
+              id="log-content"
+              placeholder="Describe concepts, code snippets, challenges, and insights from today's lesson..."
+            ></textarea>
+          </div>
+          <div class="input-group">
+            <label for="log-importance">Understanding Level:</label>
+            <div class="importance-slider">
+              <input
+                type="range"
+                id="log-importance"
+                min="1"
+                max="5"
+                value="3"
+              />
+              <div class="importance-labels">
+                <span>Need Review</span>
+                <span>Fully Understood</span>
+              </div>
+            </div>
+          </div>
+          <button id="save-log" class="btn primary">
+            <i class="fas fa-save"></i> Save Entry
+          </button>
+        </div>
 
-					<div class="logs-header">
-						<h2>Learning History</h2>
-						<div class="filter-controls">
-							<select title="filter" id="filter-category">
-								<option value="all">All Sections</option>
-								<option value="html-css">HTML & CSS</option>
-								<option value="javascript">JavaScript</option>
-								<option value="node">Node.js</option>
-								<option value="express">Express</option>
-								<option value="mongodb">MongoDB</option>
-								<option value="project">Projects</option>
-							</select>
-							<div class="search-box">
-								<input
-									type="text"
-									id="search-logs"
-									placeholder="Search entries..." />
-								<i class="fas fa-search"></i>
-							</div>
-						</div>
-					</div>
-					<div class="logs-container" id="logs-list">
-						<!-- Learning entries will be added here dynamically -->
-					</div>
-				</div>
-			</div>
+        <div class="logs-display">
+          <div class="course-progress">
+            <h3>Your Bootcamp Progress</h3>
+            <div class="progress-bar-container">
+              <div class="progress-bar" id="course-progress-bar"></div>
+            </div>
+            <div class="progress-stats">
+              <span id="days-logged">0 days</span>
+              <span id="progress-percentage">0%</span>
+            </div>
+          </div>
 
-			<footer>
-				<p>
-					&copy; 2025 Web Developer Bootcamp Journal |
-					<span id="stats-count">0</span> entries recorded
-				</p>
-			</footer>
+          <div class="logs-header">
+            <h2>Learning History</h2>
+            <div class="filter-controls">
+              <select title="filter" id="filter-category">
+                <option value="all">All Sections</option>
+                <option value="html-css">HTML & CSS</option>
+                <option value="javascript">JavaScript</option>
+                <option value="node">Node.js</option>
+                <option value="express">Express</option>
+                <option value="mongodb">MongoDB</option>
+                <option value="project">Projects</option>
+              </select>
+              <div class="search-box">
+                <input
+                  type="text"
+                  id="search-logs"
+                  placeholder="Search entries..."
+                />
+                <i class="fas fa-search"></i>
+              </div>
+            </div>
+          </div>
+          <div class="logs-container" id="logs-list">
+            <!-- Learning entries will be added here dynamically -->
+          </div>
+        </div>
+      </div>
 
-			<!-- Entry details modal -->
-			<div id="log-modal" class="modal">
-				<div class="modal-content">
-					<span class="close-modal">&times;</span>
-					<div id="modal-content"></div>
-				</div>
-			</div>
+      <footer>
+        <p>
+          &copy; 2025 Web Developer Bootcamp Journal |
+          <span id="stats-count">0</span> entries recorded
+        </p>
+      </footer>
 
-			<!-- Notification element -->
-			<div id="notification" class="notification">
-				<div class="notification-icon">
-					<i class="fas fa-bell"></i>
-				</div>
-				<div class="notification-content">
-					<p id="notification-text">New entry added!</p>
-				</div>
-			</div>
-		</div>
+      <!-- Entry details modal -->
+      <div id="log-modal" class="modal">
+        <div class="modal-content">
+          <span class="close-modal">&times;</span>
+          <div id="modal-content"></div>
+        </div>
+      </div>
 
-		<!-- Scripts -->
+      <!-- Notification element -->
+      <div id="notification" class="notification">
+        <div class="notification-icon">
+          <i class="fas fa-bell"></i>
+        </div>
+        <div class="notification-content">
+          <p id="notification-text">New entry added!</p>
+        </div>
+      </div>
+    </div>
 
-		<script>
-			// Additional authentication check on page load
-			document.addEventListener("DOMContentLoaded", function () {
-				console.log("Checking authentication status on page load...");
+    <!-- Scripts -->
 
-				// Connect debug button
-				const debugButton = document.getElementById("debug-button");
-				if (debugButton) {
-					debugButton.addEventListener("click", function () {
-						if (typeof debugApp === "function") {
-							debugApp();
-						} else {
-							alert(
-								"Debug function not available yet. App.js might not be fully loaded."
-							);
-							console.error("debugApp function not available");
-						}
-					});
-				}
+    <script>
+      // Additional authentication check on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("Checking authentication status on page load...");
 
-				// Get API URL and BASE_PATH from config
-				const API_BASE_URL =
-					window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
+        // Connect debug button
+        const debugButton = document.getElementById("debug-button");
+        if (debugButton) {
+          debugButton.addEventListener("click", function () {
+            if (typeof debugApp === "function") {
+              debugApp();
+            } else {
+              alert(
+                "Debug function not available yet. App.js might not be fully loaded."
+              );
+              console.error("debugApp function not available");
+            }
+          });
+        }
 
-				const BASE_PATH =
-					window.BASE_PATH !== undefined ? window.BASE_PATH : "";
+        // Get API URL and BASE_PATH from config
+        const API_BASE_URL =
+          window.API_BASE_URL !== undefined ? window.API_BASE_URL : "";
 
-				fetch(`${API_BASE_URL}/api/user`, {
-					credentials: "include", // Important for cross-origin requests with cookies
-				})
-					.then((response) => {
-						if (!response.ok) {
-							console.log("Not authenticated, redirecting to login");
-							window.location.href = `${BASE_PATH}/login.html`;
-							throw new Error("Not authenticated");
-						}
-						return response.json();
-					})
-					.then((data) => {
-						if (!data.authenticated) {
-							console.log("Not authenticated, redirecting to login");
-							window.location.href = `${BASE_PATH}/login.html`;
-						} else {
-							console.log("Authentication verified, user:", data.username);
-							// THIS PART IS KEY: Only initialize the app after authentication
-							window.isAuthenticated = true;
-							// If app.js hasn't initialized yet, do it now
-							if (
-								typeof window.appInitialized === "undefined" ||
-								!window.appInitialized
-							) {
-								if (typeof initializeApp === "function") {
-									console.log("Initializing app from auth check");
-									initializeApp();
-								} else {
-									console.log(
-										"initializeApp function not available yet, will be called from app.js"
-									);
-								}
-							}
-						}
-					})
-					.catch((error) => {
-						console.error("Authentication error:", error);
-					});
-			});
-		</script>
-		<script src="js/config.js"></script>
-		<script src="js/app.js"></script>
-		<script src="js/auth.js"></script>
-	</body>
+        const BASE_PATH =
+          window.BASE_PATH !== undefined ? window.BASE_PATH : "";
+
+        fetch(`${API_BASE_URL}/api/user`, {
+          credentials: "include", // Important for cross-origin requests with cookies
+        })
+          .then((response) => {
+            if (!response.ok) {
+              console.log("Not authenticated, redirecting to login");
+              window.location.href = `${BASE_PATH}/login.html`;
+              throw new Error("Not authenticated");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (!data.authenticated) {
+              console.log("Not authenticated, redirecting to login");
+              window.location.href = `${BASE_PATH}/login.html`;
+            } else {
+              console.log("Authentication verified, user:", data.username);
+              // THIS PART IS KEY: Only initialize the app after authentication
+              window.isAuthenticated = true;
+              // If app.js hasn't initialized yet, do it now
+              if (
+                typeof window.appInitialized === "undefined" ||
+                !window.appInitialized
+              ) {
+                if (typeof initializeApp === "function") {
+                  console.log("Initializing app from auth check");
+                  initializeApp();
+                } else {
+                  console.log(
+                    "initializeApp function not available yet, will be called from app.js"
+                  );
+                }
+              }
+            }
+          })
+          .catch((error) => {
+            console.error("Authentication error:", error);
+          });
+      });
+    </script>
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+  </body>
 </html>
