@@ -506,12 +506,90 @@ app.delete("/api/logs/:id", isAuthenticated, async (req, res) => {
 // --- Email Routes (Keep as is for now) ---
 // GET email status
 app.get("/api/status", (req, res) => {
-  // ... (keep existing email status logic) ...
+  // Return the status based on the loaded emailConfig
+  const isValidConfig =
+    emailConfig.enabled &&
+    emailConfig.transport.host &&
+    emailConfig.transport.auth.user &&
+    emailConfig.transport.auth.pass &&
+    emailConfig.options.from &&
+    emailConfig.options.to;
+
+  res.json({
+    emailEnabled: emailConfig.enabled,
+    isConfigured: isValidConfig, // Add a flag indicating if all required fields are present
+    // Optionally, you could send back non-sensitive parts of the config for debugging
+    // configDetails: {
+    //   host: emailConfig.transport.host,
+    //   port: emailConfig.transport.port,
+    //   secure: emailConfig.transport.secure,
+    //   user: emailConfig.transport.auth.user ? '******' : null, // Mask sensitive info
+    //   from: emailConfig.options.from,
+    //   to: emailConfig.options.to
+    // }
+  });
 });
 
 // POST test email
 app.post("/api/test-email", isAuthenticated, async (req, res) => {
-  // ... (keep existing test email logic) ...
+  logToFile("Test email requested", { userId: req.session.userId });
+
+  const isValidConfig =
+    emailConfig.enabled &&
+    emailConfig.transport.host &&
+    emailConfig.transport.auth.user &&
+    emailConfig.transport.auth.pass &&
+    emailConfig.options.from &&
+    emailConfig.options.to;
+
+  if (!isValidConfig) {
+    logToFile("Test email failed: Email disabled or misconfigured", {
+      userId: req.session.userId,
+    });
+    return res
+      .status(400)
+      .json({ success: false, message: "Email is disabled or misconfigured." });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport(emailConfig.transport);
+
+    // Optional: Verify connection - helps diagnose issues but adds delay
+    // await transporter.verify(); 
+    // logToFile("Email transporter verified successfully for test email", { userId: req.session.userId });
+
+    const mailOptions = {
+      from: emailConfig.options.from,
+      to: emailConfig.options.to, // Send to the configured recipient
+      subject: "Test Email from Daily Logger",
+      text: `This is a test email sent from the Daily Logger application.\n\nTimestamp: ${new Date().toLocaleString()}`,
+      html: `
+        <h2>Test Email from Daily Logger</h2>
+        <p>This is a test email sent from the Daily Logger application.</p>
+        <p>If you received this, your email configuration is likely working.</p>
+        <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+      `,
+    };
+
+    // Send the email and wait for the result
+    const info = await transporter.sendMail(mailOptions);
+    logToFile("Test email sent successfully", {
+      userId: req.session.userId,
+      messageId: info.messageId,
+    });
+    res.json({ success: true, message: "Test email sent successfully!" });
+
+  } catch (error) {
+    logToFile("Error sending test email", {
+      userId: req.session.userId,
+      error: error.message,
+    });
+    console.error("Error sending test email:", error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to send test email: ${error.message}`,
+    });
+  }
 });
 
 // --- Serve Frontend Routes ---

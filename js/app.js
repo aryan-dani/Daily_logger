@@ -336,9 +336,10 @@ async function saveLog() {
           logTitleEl.focus();
         } else {
           // If user doesn't want to continue, maybe scroll to the logs section
-          document
-            .querySelector(".logs-section")
-            .scrollIntoView({ behavior: "smooth" });
+          const logsSection = document.querySelector(".logs-display"); // Corrected selector
+          if (logsSection) {
+            logsSection.scrollIntoView({ behavior: "smooth" });
+          }
         }
       }, 500);
     }
@@ -696,8 +697,14 @@ window.debugApp = debugApp;
 
 // Check email configuration status
 async function checkEmailStatus() {
-  if (!emailStatus) {
-    console.error("Email status element not found");
+  // Find the text span specifically
+  const emailStatusTextEl = document.getElementById("email-status-text");
+  const emailStatusContainerEl = document.getElementById("email-status"); // The container div
+
+  if (!emailStatusTextEl || !testEmailBtn || !emailStatusContainerEl) {
+    console.error(
+      "Email status elements (text, button, or container) not found"
+    );
     return;
   }
 
@@ -712,19 +719,23 @@ async function checkEmailStatus() {
 
     const data = await response.json();
 
-    if (data.emailEnabled) {
-      emailStatus.textContent = "Email notifications are enabled";
-      emailStatus.className = "status enabled";
+    if (data.emailEnabled && data.isConfigured) {
+      emailStatusTextEl.textContent = "Email notifications are enabled";
+      emailStatusContainerEl.className = "settings-status status enabled"; // Update container class
       testEmailBtn.disabled = false;
+    } else if (data.emailEnabled && !data.isConfigured) {
+      emailStatusTextEl.textContent = "Email enabled but misconfigured";
+      emailStatusContainerEl.className = "settings-status status warning"; // Use a warning class
+      testEmailBtn.disabled = true;
     } else {
-      emailStatus.textContent = "Email notifications are disabled";
-      emailStatus.className = "status disabled";
+      emailStatusTextEl.textContent = "Email notifications are disabled";
+      emailStatusContainerEl.className = "settings-status status disabled"; // Update container class
       testEmailBtn.disabled = true;
     }
   } catch (error) {
     console.error("Error checking email status:", error);
-    emailStatus.textContent = "Unable to check email status";
-    emailStatus.className = "status error";
+    emailStatusTextEl.textContent = "Unable to check email status";
+    emailStatusContainerEl.className = "settings-status status error"; // Update container class
     testEmailBtn.disabled = true;
   }
 }
@@ -742,7 +753,12 @@ async function sendTestEmail() {
 
   try {
     const response = await fetch(`${window.API_BASE_URL}/api/test-email`, {
+      method: "POST", // Change to POST
       credentials: "include",
+      headers: {
+        // Although no body is sent, specifying content type can sometimes help
+        "Content-Type": "application/json",
+      }
     });
 
     const data = await response.json();
