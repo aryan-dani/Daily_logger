@@ -110,6 +110,7 @@ const allowedOrigins = [
 	"http://127.0.0.1:3000", // Local development alternative
 	"http://localhost:5500", // VS Code Live Server
 	"http://127.0.0.1:5500", // VS Code Live Server alternative
+  "https://aryan-dani.github.io", // GitHub Pages
 	"https://aryan-dani.github.io/Daily_logger/", // GitHub Pages
 	"https://daily-logger-7ial.onrender.com", // Render deployment
 	"null", // Handle 'null' origin (sometimes happens with local file:// URLs)
